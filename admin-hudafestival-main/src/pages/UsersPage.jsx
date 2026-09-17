@@ -3,7 +3,7 @@ import Pagination from '../components/Pagination';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import Button from '../components/Button';
-import { AnimatedInput } from '@/components/smoothui/animated-input';
+import AnimatedInput from '@/components/smoothui/animated-input';
 import Modal from '../components/Modal';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { Edit2, Trash2, Plus } from 'lucide-react';
@@ -379,3 +379,4 @@ const UsersPage = () => {
 };
 
 export default UsersPage;
+

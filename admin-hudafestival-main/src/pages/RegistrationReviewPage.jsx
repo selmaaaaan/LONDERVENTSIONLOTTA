@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import ProgrammeCodePicker from '../components/ProgrammeCodePicker';
 import Button from '../components/Button';
 import AnimatedProgressBar from '@/components/smoothui/animated-progress-bar';
-import { AnimatedTabs } from '@/components/smoothui/animated-tabs';
+import AnimatedTabs from '@/components/smoothui/animated-tabs';
 
 const CATEGORIES = ['All', 'BIDĀYAH', 'ʾŪLĀ', 'THĀNIYAH', 'THĀNAWIYYAH', 'ʿĀLIYAH', 'KULLIYYAH'];
 
@@ -602,3 +602,4 @@ export default function RegistrationReviewPage() {
     </div>
   );
 }
+

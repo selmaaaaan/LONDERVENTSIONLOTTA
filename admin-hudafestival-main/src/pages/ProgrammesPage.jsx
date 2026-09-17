@@ -6,8 +6,8 @@ import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import AddProgrammeForm from '../components/AddProgrammeForm';
 import Button from '../components/Button';
-import { AnimatedTabs } from '@/components/smoothui/animated-tabs';
-import { AnimatedInput } from '@/components/smoothui/animated-input';
+import AnimatedTabs from '@/components/smoothui/animated-tabs';
+import AnimatedInput from '@/components/smoothui/animated-input';
 import StatusBadge from '../components/StatusBadge';
 import { ChevronLeft, BarChart2 } from 'lucide-react';
 
@@ -189,3 +189,4 @@ const ProgrammesPage = () => {
 };
 
 export default ProgrammesPage;
+
