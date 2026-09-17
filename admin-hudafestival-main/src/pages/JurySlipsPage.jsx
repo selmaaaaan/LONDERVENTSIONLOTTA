@@ -23,6 +23,10 @@ const JurySlipsPage = () => {
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [candidateRegistrations, setCandidateRegistrations] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [bulkData, setBulkData] = useState(null);
+  const [isBulkLoading, setIsBulkLoading] = useState(false);
+  const categories = ['All', 'BIDAYA', 'ULA', 'THANIYYAH', 'THANAWIYYAH', 'ALIYA', 'GENERAL', 'KULLIYYAH'];
 
   useEffect(() => {
     if (mode !== 'participant') return;
@@ -208,7 +212,7 @@ const JurySlipsPage = () => {
     // Assign code letters
     const assigned = shuffled.map((reg, index) => ({
       ...reg,
-      codeLetter: generateCodeLetter(index)
+      codeLetter: reg.codeLetter || generateCodeLetter(index)
     }));
 
     // Sort alphabetically by code letter so the printed list is in order A, B, C...
@@ -217,9 +221,67 @@ const JurySlipsPage = () => {
     setShuffledList(assigned);
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = () => { window.print(); };
+
+  const handleBulkDownload = async (stageType) => {
+    setIsBulkLoading(true);
+    try {
+      const res = await api.get('/registrations?status=approved&limit=10000');
+      const allRegs = res.data.registrations || res.data.data || [];
+      
+      let targetProgrammes = programmes.filter(p => p.stageType === stageType);
+      if (categoryFilter !== 'All') {
+        targetProgrammes = targetProgrammes.filter(p => p.category === categoryFilter);
+      }
+      
+      if (targetProgrammes.length === 0) {
+        alertAction("No programmes found for this stage type/category.");
+        setIsBulkLoading(false);
+        return;
+      }
+      
+      const bulkArray = [];
+      targetProgrammes.forEach(prog => {
+        let progRegs = allRegs.filter(r => r.programme && r.programme._id === prog._id);
+        if (progRegs.length > 0) {
+          progRegs = progRegs.sort((a, b) => {
+            const teamA = a.team?.name || '';
+            const teamB = b.team?.name || '';
+            return teamA.localeCompare(teamB);
+          });
+          progRegs = progRegs.map((reg, index) => ({
+             ...reg,
+             codeLetter: reg.codeLetter || generateCodeLetter(index)
+          }));
+          progRegs.sort((a, b) => a.codeLetter.localeCompare(b.codeLetter));
+          bulkArray.push({ programme: prog, registrations: progRegs });
+        }
+      });
+      
+      if (bulkArray.length === 0) {
+        alertAction("No approved candidates found for this stage type/category.");
+        setIsBulkLoading(false);
+        return;
+      }
+      
+      setBulkData({ stageType, data: bulkArray });
+      
+      setTimeout(() => {
+        const originalTitle = document.title;
+        document.title = "lintervention-2026-" + stageType + "-slips";
+        window.print();
+        document.title = originalTitle;
+        setBulkData(null);
+        setIsBulkLoading(false);
+      }, 1000);
+      
+    } catch (e) {
+      console.error(e);
+      alertAction("Failed to fetch bulk registrations");
+      setIsBulkLoading(false);
+    }
   };
+
 
   return (
     <div className="p-6 w-full space-y-8">
@@ -229,7 +291,18 @@ const JurySlipsPage = () => {
             <h1 className="text-2xl font-bold text-[var(--color-text-heading)]">Participant Directory</h1>
           </div>
 
-          <div className="flex bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-1 w-fit">
+          
+            <div className="flex bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-1 w-fit">
+              <select
+                className="bg-transparent border-none text-sm font-medium focus:ring-0 px-3 cursor-pointer text-[var(--color-text-heading)] outline-none"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                {categories.map(cat => <option key={cat} value={cat}>{cat} Category</option>)}
+              </select>
+            </div>
+
+            <div className="flex bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg p-1 w-fit ml-4">
             <button
               onClick={() => setMode('programme')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'programme' ? 'bg-[var(--color-primary)] text-white shadow-sm' : 'text-[var(--color-text-muted)] hover:text-[var(--color-text)]'}`}
@@ -289,9 +362,19 @@ const JurySlipsPage = () => {
              <Button onClick={handleGenerate} variant="outline">
                <RefreshCw size={16} className="mr-2" /> Refresh
              </Button>
-             <Button onClick={handlePrint} variant="primary">
-               <Printer size={16} className="mr-2" /> Print Participant List
-             </Button>
+             
+               <Button onClick={handlePrint} variant="primary">
+                 <Printer size={16} className="mr-2" /> Print Participant List
+               </Button>
+               <Button onClick={() => handleBulkDownload('non-stage')} variant="outline" disabled={isBulkLoading}>
+                 {isBulkLoading ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Layers size={16} className="mr-2" />}
+                 Download All Non-Stage Slips
+               </Button>
+               <Button onClick={() => handleBulkDownload('stage')} variant="outline" disabled={isBulkLoading}>
+                 {isBulkLoading ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Layers size={16} className="mr-2" />}
+                 Download All Stage Slips
+               </Button>
+
           </div>
         )}
 </>
@@ -335,126 +418,133 @@ const JurySlipsPage = () => {
 
         </div>
 
-{/* Printable Area */}
-      {mode === 'programme' && shuffledList.length > 0 && selectedProgramme && (
-        <div className="print:absolute print:inset-0 print:z-[9999] print:block hidden-on-screen print:bg-white text-black font-sans mx-auto print:m-0 print:p-0 w-full max-w-[297mm] print:w-auto overflow-visible space-y-8 print:space-y-0" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
-          
-          {(() => {
-            const rows = [];
-            shuffledList.forEach((reg) => {
-              const cands = reg.candidates?.length ? reg.candidates : [{}];
-              cands.forEach((c) => rows.push({ c, reg }));
-            });
-            
-            const ROWS_PER_PAGE = 8;
-            const pages = [];
-            const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
-            
-            for (let p = 0; p < totalPages; p++) {
-              const pageRows = rows.slice(p * ROWS_PER_PAGE, (p + 1) * ROWS_PER_PAGE);
-              const paddedRows = [];
-              for (let i = 0; i < ROWS_PER_PAGE; i++) {
-                paddedRows.push(pageRows[i] || null);
-              }
-              
-              pages.push(
-                <div key={p} className="w-full h-[210mm] print:w-[297mm] print:h-[210mm] print:break-after-page box-border p-[10mm] bg-white relative shadow-lg print:shadow-none mb-8 print:mb-0">
-                  <div className="w-full h-full border-[2px] border-black p-[2mm] rounded-[4mm] box-border flex flex-col relative bg-white">
-                    <div className="w-full h-full border-[1.5px] border-black rounded-[2mm] box-border p-2 flex flex-col">
-                      
-                      {/* Header */}
-                      <div className="flex justify-between items-start mb-2 px-2 pt-1">
-                        {/* Logo */}
-                        <div className="w-48 h-20 flex items-center justify-start shrink-0">
-                          <img src="https://i.ibb.co/HTNc8VJN/lintervention-logo-badge-1.png" alt="L'intervention" className="w-full h-full object-contain mix-blend-multiply" style={{ filter: 'grayscale(100%) brightness(0.7) contrast(1.5)' }} />
-                        </div>
-                        
-                        {/* Title */}
-                        <div className="flex flex-col items-center justify-center mt-3 flex-1 px-4">
-                          <h1 className="text-2xl font-black uppercase tracking-tight text-black border-b-[2px] border-black pb-1 mb-1 px-8 text-center leading-none whitespace-nowrap">Shamsul Huda Arts Fest 2026</h1>
-                          <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase text-black whitespace-nowrap">Art Builds A Better Tomorrow</h2>
-                        </div>
-                        
-                        {/* Building Illustration Placeholder */}
-                        <div className="w-64 h-24 -mt-2 -mr-2 relative flex justify-end shrink-0 overflow-hidden">
-                          <img src="/academy-building.jpg" alt="Academy Building" className="w-full h-full object-cover object-center mix-blend-multiply" style={{ filter: 'grayscale(100%)' }} />
+
+        {/* Printable Area */}
+        {(bulkData !== null || (mode === 'programme' && shuffledList.length > 0 && selectedProgramme)) && (
+          <div className="print:absolute print:inset-0 print:z-[9999] print:block hidden-on-screen print:bg-white text-black font-sans mx-auto print:m-0 print:p-0 w-full max-w-[297mm] print:w-auto overflow-visible space-y-8 print:space-y-0" style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}>
+            {(() => {
+              const renderProgrammePages = (prog, regs) => {
+                const rows = [];
+                regs.forEach((reg) => {
+                  const cands = reg.candidates?.length ? reg.candidates : [{}];
+                  cands.forEach((c) => rows.push({ c, reg }));
+                });
+                
+                const ROWS_PER_PAGE = 8;
+                const pages = [];
+                const totalPages = Math.max(1, Math.ceil(rows.length / ROWS_PER_PAGE));
+                
+                for (let p = 0; p < totalPages; p++) {
+                  const pageRows = rows.slice(p * ROWS_PER_PAGE, (p + 1) * ROWS_PER_PAGE);
+                  const paddedRows = [];
+                  for (let i = 0; i < ROWS_PER_PAGE; i++) {
+                    paddedRows.push(pageRows[i] || null);
+                  }
+                  
+                  pages.push(
+                    <div key={prog._id + '-' + p} className="w-full h-[210mm] print:w-[297mm] print:h-[210mm] print:break-after-page box-border p-[10mm] bg-white relative shadow-lg print:shadow-none mb-8 print:mb-0">
+                      <div className="w-full h-full border-[2px] border-black p-[2mm] rounded-[4mm] box-border flex flex-col relative bg-white">
+                        <div className="w-full h-full border-[1.5px] border-black rounded-[2mm] box-border p-2 flex flex-col">
+                          
+                          {/* Header */}
+                          <div className="flex justify-between items-start mb-2 px-2 pt-1">
+                            {/* Logo */}
+                            <div className="w-48 h-20 flex items-center justify-start shrink-0">
+                              <img src="https://i.ibb.co/HTNc8VJN/lintervention-logo-badge-1.png" alt="L'intervention" className="w-full h-full object-contain mix-blend-multiply" style={{ filter: 'grayscale(100%) brightness(0.7) contrast(1.5)' }} />
+                            </div>
+                            
+                            {/* Title */}
+                            <div className="flex flex-col items-center justify-center mt-3 flex-1 px-4">
+                              <h1 className="text-2xl font-black uppercase tracking-tight text-black border-b-[2px] border-black pb-1 mb-1 px-8 text-center leading-none whitespace-nowrap">Shamsul Huda Arts Fest 2026</h1>
+                              <h2 className="text-[10px] font-bold tracking-[0.2em] uppercase text-black whitespace-nowrap">Art Builds A Better Tomorrow</h2>
+                            </div>
+                            
+                            {/* Building Illustration Placeholder */}
+                            <div className="w-64 h-24 -mt-2 -mr-2 relative flex justify-end shrink-0 overflow-hidden">
+                              <img src="/academy-building.jpg" alt="Academy Building" className="w-full h-full object-cover object-center mix-blend-multiply" style={{ filter: 'grayscale(100%)' }} />
+                            </div>
+                          </div>
+                  
+                          {/* Info Grid */}
+                          <div className="px-2 mb-2 mt-1">
+                            <div className="flex gap-2 mb-3">
+                              <div className="flex-[2] relative border-[1.5px] border-black h-8 px-2 flex items-center">
+                                <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">PROGRAMME</div>
+                                <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{prog.name}</div>
+                              </div>
+                              <div className="flex-[1] relative border-[1.5px] border-black h-8 px-2 flex items-center">
+                                <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">PROGRAMME CODE</div>
+                                <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{prog.code}</div>
+                              </div>
+                              <div className="flex-[1] relative border-[1.5px] border-black h-8 px-2 flex items-center">
+                                <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">CATEGORY</div>
+                                <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{prog.category}</div>
+                              </div>
+                              <div className="flex-[1.2] relative border-[1.5px] border-black h-8 px-2 flex items-center">
+                                <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">JUDGE NAME</div>
+                                <div className="text-[11px] font-bold uppercase truncate w-full pt-1"></div>
+                              </div>
+                              <div className="flex-[0.8] relative border-[1.5px] border-black h-8 px-2 flex items-center">
+                                <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">DATE</div>
+                                <div className="text-[11px] font-bold uppercase truncate w-full pt-1"></div>
+                              </div>
+                            </div>
+                            
+                            <div className="flex h-8">
+                              <div className="bg-[#e5e7eb] border-[1.5px] border-black border-r-0 w-28 flex items-center justify-center font-black text-sm tracking-widest uppercase">TOPIC</div>
+                              <div className="flex-1 border-[1.5px] border-black px-2 flex items-center text-xs font-bold bg-white"></div>
+                            </div>
+                          </div>
+                  
+                          {/* Table */}
+                          <div className="px-2 mt-2 flex-1 flex flex-col min-h-0">
+                            <table className="w-full border-collapse border-[1.5px] border-black h-full bg-white table-fixed">
+                              <thead>
+                                <tr className="bg-[#e5e7eb] border-b-[1.5px] border-black h-10">
+                                  <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-14 leading-tight">SL.<br/>NO.</th>
+                                    <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-16 leading-tight">CODE<br/>LETTER</th>
+                                  
+                                  <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-28">AD No.</th>
+                                  <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center">NAME</th>
+                                  <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-36">TEAM</th>
+                                  <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-32">POSITION</th>
+                                  <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-24">GRADE</th>
+                                  <th className="px-2 text-[11px] font-black text-center w-40">REMARKS</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {paddedRows.map((data, i) => (
+                                  <tr key={i} className="border-b-[1.5px] border-black last:border-b-0 h-[12.5%]">
+                                    <td className="border-r-[1.5px] border-black text-center font-black text-[16px]">{p * ROWS_PER_PAGE + i + 1}</td>
+                                      <td className="border-r-[1.5px] border-black text-center font-bold text-[14px] leading-tight px-1">{data?.reg?.codeLetter || ''}</td>
+                                    
+                                      <td className="border-r-[1.5px] border-black text-center font-bold text-[10px] leading-tight px-1 break-all">{data?.c?.admissionNo || ''}</td>
+                                        <td className="border-r-[1.5px] border-black px-3 font-bold text-[10px] uppercase truncate overflow-hidden max-w-[200px] leading-tight whitespace-pre-wrap">{data?.c?.name || ''}</td>
+                                      <td className="border-r-[1.5px] border-black px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[100px]">{data?.reg?.team?.name || ''}</td>
+                                    <td className="border-r-[1.5px] border-black"></td>
+                                    <td className="border-r-[1.5px] border-black"></td>
+                                    <td className=""></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                  
                         </div>
                       </div>
-              
-                      {/* Info Grid */}
-                      <div className="px-2 mb-2 mt-1">
-                        <div className="flex gap-2 mb-3">
-                          <div className="flex-[2] relative border-[1.5px] border-black h-8 px-2 flex items-center">
-                            <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">PROGRAMME</div>
-                            <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{selectedProgramme.name}</div>
-                          </div>
-                          <div className="flex-[1] relative border-[1.5px] border-black h-8 px-2 flex items-center">
-                            <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">PROGRAMME CODE</div>
-                            <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{selectedProgramme.code}</div>
-                          </div>
-                          <div className="flex-[1] relative border-[1.5px] border-black h-8 px-2 flex items-center">
-                            <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">CATEGORY</div>
-                            <div className="text-[11px] font-bold uppercase truncate w-full pt-1">{selectedProgramme.category}</div>
-                          </div>
-                          <div className="flex-[1.2] relative border-[1.5px] border-black h-8 px-2 flex items-center">
-                            <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">JUDGE NAME</div>
-                            <div className="text-[11px] font-bold uppercase truncate w-full pt-1"></div>
-                          </div>
-                          <div className="flex-[0.8] relative border-[1.5px] border-black h-8 px-2 flex items-center">
-                            <div className="absolute -top-[6px] left-2 bg-white px-1 text-[9px] font-black uppercase leading-none tracking-tight">DATE</div>
-                            <div className="text-[11px] font-bold uppercase truncate w-full pt-1"></div>
-                          </div>
-                        </div>
-                        
-                        <div className="flex h-8">
-                          <div className="bg-[#e5e7eb] border-[1.5px] border-black border-r-0 w-28 flex items-center justify-center font-black text-sm tracking-widest uppercase">TOPIC</div>
-                          <div className="flex-1 border-[1.5px] border-black px-2 flex items-center text-xs font-bold bg-white"></div>
-                        </div>
-                      </div>
-              
-                      {/* Table */}
-                      <div className="px-2 mt-2 flex-1 flex flex-col min-h-0">
-                        <table className="w-full border-collapse border-[1.5px] border-black h-full bg-white table-fixed">
-                          <thead>
-                            <tr className="bg-[#e5e7eb] border-b-[1.5px] border-black h-10">
-                              <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-14 leading-tight">SL.<br/>NO.</th>
-                                <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-16 leading-tight">CODE<br/>LETTER</th>
-                              
-                              <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-28">AD No.</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center">NAME</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-36">TEAM</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-32">POSITION</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-24">GRADE</th>
-                              <th className="px-2 text-[11px] font-black text-center w-40">REMARKS</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {paddedRows.map((data, i) => (
-                              <tr key={i} className="border-b-[1.5px] border-black last:border-b-0 h-[12.5%]">
-                                <td className="border-r-[1.5px] border-black text-center font-black text-[16px]">{p * ROWS_PER_PAGE + i + 1}</td>
-                                  <td className="border-r-[1.5px] border-black text-center font-bold text-[14px] leading-tight px-1">{data?.reg?.codeLetter || ''}</td>
-                                
-                                  <td className="border-r-[1.5px] border-black text-center font-bold text-[10px] leading-tight px-1 break-all">{data?.c?.admissionNo || ''}</td>
-                                    <td className="border-r-[1.5px] border-black px-3 font-bold text-[10px] uppercase truncate overflow-hidden max-w-[200px] leading-tight whitespace-pre-wrap">{data?.c?.name || ''}</td>
-                                  <td className="border-r-[1.5px] border-black px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[100px]">{data?.reg?.team?.name || ''}</td>
-                                <td className="border-r-[1.5px] border-black"></td>
-                                <td className="border-r-[1.5px] border-black"></td>
-                                <td className=""></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-              
                     </div>
-                  </div>
-                </div>
-              );
-            }
-            return pages;
-          })()}
-        </div>
-      )}
+                  );
+                }
+                return pages;
+              };
+
+              if (bulkData) {
+                return bulkData.data.map(item => renderProgrammePages(item.programme, item.registrations));
+              }
+              return renderProgrammePages(selectedProgramme, shuffledList);
+            })()}
+          </div>
+        )}
       {/* Warning Popup */}
       {showWarning && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
