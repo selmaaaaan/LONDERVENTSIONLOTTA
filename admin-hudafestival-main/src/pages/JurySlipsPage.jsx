@@ -157,14 +157,8 @@ const JurySlipsPage = () => {
           return teamA.localeCompare(teamB);
         });
 
-        progRegs = progRegs.map((reg, index) => {
-           let letter = '';
-           let temp = index;
-           while (temp >= 0) {
-             letter = String.fromCharCode(65 + (temp % 26)) + letter;
-             temp = Math.floor(temp / 26) - 1;
-           }
-           return { ...reg, codeLetter: letter };
+        progRegs = progRegs.map((reg) => {
+           return { ...reg, codeLetter: reg.codeLetter || '' };
         });
 
         let slNoAll = 0;
@@ -210,13 +204,18 @@ const JurySlipsPage = () => {
     });
 
     // Assign code letters
-    const assigned = shuffled.map((reg, index) => ({
+    const assigned = shuffled.map((reg) => ({
       ...reg,
-      codeLetter: reg.codeLetter || generateCodeLetter(index)
+      codeLetter: reg.codeLetter || ''
     }));
 
-    // Sort alphabetically by code letter so the printed list is in order A, B, C...
-    assigned.sort((a, b) => a.codeLetter.localeCompare(b.codeLetter));
+    // Sort alphabetically by code letter ONLY IF they exist
+    assigned.sort((a, b) => {
+      if (a.codeLetter && b.codeLetter) return a.codeLetter.localeCompare(b.codeLetter);
+      if (a.codeLetter) return -1;
+      if (b.codeLetter) return 1;
+      return 0; // maintain previous team sort order
+    });
     
     setShuffledList(assigned);
   };
@@ -249,11 +248,16 @@ const JurySlipsPage = () => {
             const teamB = b.team?.name || '';
             return teamA.localeCompare(teamB);
           });
-          progRegs = progRegs.map((reg, index) => ({
+          progRegs = progRegs.map((reg) => ({
              ...reg,
-             codeLetter: reg.codeLetter || generateCodeLetter(index)
+             codeLetter: reg.codeLetter || ''
           }));
-          progRegs.sort((a, b) => a.codeLetter.localeCompare(b.codeLetter));
+          progRegs.sort((a, b) => {
+            if (a.codeLetter && b.codeLetter) return a.codeLetter.localeCompare(b.codeLetter);
+            if (a.codeLetter) return -1;
+            if (b.codeLetter) return 1;
+            return 0;
+          });
           bulkArray.push({ programme: prog, registrations: progRegs });
         }
       });
