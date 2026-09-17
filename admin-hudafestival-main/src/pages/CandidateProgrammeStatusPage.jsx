@@ -1,3 +1,4 @@
+import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, User, Trophy, Calendar, CheckCircle, Clock } from "lucide-react";

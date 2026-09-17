@@ -1,3 +1,4 @@
+import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useState, useEffect } from "react";
 import { Search, User, Calendar, BookOpen, Clock, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -37,19 +38,20 @@ export default function ProgrammeParticipantSearchPage() {
             const list = res.data.registrations || res.data || [];
             
             // Group participants by registration so group programmes are shown in one cell
-            let groups = [];
-            list.forEach(reg => {
-                if (reg.candidates && Array.isArray(reg.candidates) && reg.candidates.length > 0) {
-                    groups.push({
-                        _id: reg._id,
-                        admissionNo: reg.candidates.map(c => c.admissionNo).join(', '),
-                        name: reg.candidates.map(c => c.name).join(', '),
-                        team: reg.team,
-                        count: reg.candidates.length
-                    });
-                }
-            });
-            setProgrammeCandidates(groups);
+            let flatCandidates = [];
+              list.forEach(reg => {
+                  if (reg.candidates && Array.isArray(reg.candidates)) {
+                      reg.candidates.forEach(c => {
+                          flatCandidates.push({
+                              _id: reg._id + '_' + c._id, // unique key for rendering
+                              admissionNo: c.admissionNo,
+                              name: c.name,
+                              team: reg.team
+                          });
+                      });
+                  }
+              });
+              setProgrammeCandidates(flatCandidates);
         } catch (err) {
             console.error(err);
         } finally {

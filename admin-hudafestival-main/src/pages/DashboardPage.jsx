@@ -1,3 +1,4 @@
+import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useEffect, useState } from 'react';
 import { Users, Calendar, Trophy, BarChart3 } from 'lucide-react';
 import api from '../services/api';

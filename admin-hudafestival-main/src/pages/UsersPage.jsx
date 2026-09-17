@@ -1,3 +1,4 @@
+import GridLoader from '@/components/smoothui/grid-loader';
 import { useAlert } from '../context/AlertContext';
 import Pagination from '../components/Pagination';
 import React, { useState, useEffect } from 'react';
@@ -33,6 +34,9 @@ const UsersPage = () => {
   // Forms state
   const [teamForm, setTeamForm] = useState({ name: '', color: '#000000' });
   const [leaderForm, setLeaderForm] = useState({ userName: '', password: '', team: '' });
+  const [resetModalOpen, setResetModalOpen] = useState(false);
+  const [resetForm, setResetForm] = useState({ userName: '', newPassword: '' });
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -169,7 +173,12 @@ const UsersPage = () => {
   return (
     <div className="p-6 w-full space-y-8">
       <div className="flex items-center justify-between mb-2">
+        <div className="flex justify-between w-full items-center">
         <h1 className="text-2xl font-bold text-[var(--color-text-heading)]">Users & Teams</h1>
+          <Button onClick={() => setResetModalOpen(true)} variant="secondary">
+            Reset User Password
+          </Button>
+        </div>
       </div>
 
       {error && <div className="p-4 bg-red-50 text-red-600 rounded-lg">{error}</div>}

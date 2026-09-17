@@ -113,7 +113,7 @@ const JurySlipsPage = () => {
     const data = listToExport.flatMap((reg) =>
       (reg.candidates?.length ? reg.candidates : [{}]).map((c) => ({
         'SL.No': ++slNo,
-        'Code Letter': '',
+        'Code Letter': reg.codeLetter || '',
         'Ad No': c.admissionNo || '-',
         'Name': c.name || '-',
         'Team': reg.team?.name || '-',
@@ -167,7 +167,7 @@ const JurySlipsPage = () => {
         const data = progRegs.flatMap((reg) =>
           (reg.candidates?.length ? reg.candidates : [{}]).map((c) => ({
             'SL.No': ++slNoAll,
-            'Code Letter': '',
+            'Code Letter': reg.codeLetter || '',
             'Ad No': c.admissionNo || '-',
             'Name': c.name || '-',
             'Team': reg.team?.name || '-',
@@ -431,10 +431,10 @@ const JurySlipsPage = () => {
                             {paddedRows.map((data, i) => (
                               <tr key={i} className="border-b-[1.5px] border-black last:border-b-0 h-[12.5%]">
                                 <td className="border-r-[1.5px] border-black text-center font-black text-[16px]">{p * ROWS_PER_PAGE + i + 1}</td>
-                                <td className="border-r-[1.5px] border-black"></td>
-                                <td className="border-r-[1.5px] border-black text-center font-bold text-[10px] leading-tight px-1 break-all">{data?.admissionNo || ''}</td>
-                                  <td className="border-r-[1.5px] border-black px-3 font-bold text-[10px] uppercase truncate overflow-hidden max-w-[200px] leading-tight whitespace-pre-wrap">{data?.name || ''}</td>
-                                <td className="border-r-[1.5px] border-black px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[100px]">{data?.reg?.team?.name || ''}</td>
+                                <td className="border-r-[1.5px] border-black text-center font-black text-[16px]">{data?.reg?.codeLetter || ''}</td>
+                                  <td className="border-r-[1.5px] border-black text-center font-bold text-[10px] leading-tight px-1 break-all">{data?.c?.admissionNo || ''}</td>
+                                    <td className="border-r-[1.5px] border-black px-3 font-bold text-[10px] uppercase truncate overflow-hidden max-w-[200px] leading-tight whitespace-pre-wrap">{data?.c?.name || ''}</td>
+                                  <td className="border-r-[1.5px] border-black px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[100px]">{data?.reg?.team?.name || ''}</td>
                                 <td className="border-r-[1.5px] border-black"></td>
                                 <td className="border-r-[1.5px] border-black"></td>
                                 <td className=""></td>
