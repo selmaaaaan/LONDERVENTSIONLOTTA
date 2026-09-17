@@ -29,6 +29,8 @@ const allowedOrigins = [
     'http://localhost:4000',
     'http://localhost:5174',
     'http://localhost:5173',
+    'http://localhost:4173',
+    'http://127.0.0.1:4173',
     'https://hudafestival.online',
     'https://www.hudafestival.online',
     'https://admin.hudafestival.online'
