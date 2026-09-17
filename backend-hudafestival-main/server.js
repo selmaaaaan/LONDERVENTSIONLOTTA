@@ -33,7 +33,8 @@ const allowedOrigins = [
     'http://127.0.0.1:4173',
     'https://hudafestival.online',
     'https://www.hudafestival.online',
-    'https://admin.hudafestival.online'
+    'https://admin.hudafestival.online',
+    'https://huda-festival-admin-xczf.onrender.com'
 ];
 
 app.use(cors({
@@ -44,7 +45,9 @@ app.use(cors({
             callback(new Error('Not allowed by CORS'));
         }
     },
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
