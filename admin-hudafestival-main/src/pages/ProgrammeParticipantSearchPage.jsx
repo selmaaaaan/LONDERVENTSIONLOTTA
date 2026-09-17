@@ -1,5 +1,6 @@
 import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useState, useEffect } from "react";
+import ProgrammeCodePicker from "../components/ProgrammeCodePicker";
 import { Search, User, Calendar, BookOpen, Clock, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../services/api";
@@ -101,16 +102,13 @@ export default function ProgrammeParticipantSearchPage() {
                 <div className="space-y-6 animate-fade-in">
                     <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
                         <label className="block text-sm font-bold text-[var(--color-text-heading)] mb-2">Select Programme</label>
-                        <select
-                            className="w-full max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text-heading)]"
-                            value={selectedProgramme}
-                            onChange={(e) => handleProgrammeSearch(e.target.value)}
-                        >
-                            <option value="">-- Choose a Programme --</option>
-                            {programmes.map(p => (
-                                <option key={p._id} value={p._id}>{p.code} - {p.name} ({p.category})</option>
-                            ))}
-                        </select>
+                        <div className="w-full max-w-md">
+                            <ProgrammeCodePicker 
+                                programmes={programmes} 
+                                value={selectedProgramme} 
+                                onSelect={(p) => handleProgrammeSearch(p ? p._id : "")} 
+                            />
+                        </div>
                     </div>
 
                     {loadingProg ? (
