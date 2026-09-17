@@ -2,11 +2,8 @@ import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  headers: {
-    'Bypass-Tunnel-Reminder': 'true'
-  }
-})
+  baseURL: import.meta.env.VITE_API_URL
+});
 
 api.interceptors.request.use(
     (config) => {
