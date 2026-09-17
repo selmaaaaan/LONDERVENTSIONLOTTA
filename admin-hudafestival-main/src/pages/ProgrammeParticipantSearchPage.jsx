@@ -61,6 +61,7 @@ export default function ProgrammeParticipantSearchPage() {
     };
 
     const handleCandidateSearch = async () => {
+        if (loadingCand) return;
         if (!searchQuery.trim()) return;
         setLoadingCand(true);
         setCandidateResults([]); // reset before each new search
@@ -160,7 +161,7 @@ export default function ProgrammeParticipantSearchPage() {
                                 className="flex-1 max-w-md bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] text-[var(--color-text-heading)]"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                onKeyDown={(e) => e.key === 'Enter' && handleCandidateSearch()}
+                                onKeyDown={(e) => e.key === 'Enter' && !loadingCand && handleCandidateSearch()}
                             />
                             <Button variant="primary" onClick={handleCandidateSearch} disabled={loadingCand}>
                                 <Search size={18} className="mr-2" /> Search
