@@ -1,3 +1,4 @@
+import ErrorBoundary from './components/ErrorBoundary';
 import { useEffect, useState } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import GlobalSearch from './components/GlobalSearch';
@@ -233,7 +234,8 @@ function App() {
 
                     <main className="flex-1 overflow-y-auto bg-[var(--color-bg)]">
             <AnimatePresence mode="wait">
-              <Routes location={location} key={location.pathname}>
+              <ErrorBoundary key={location.pathname}>
+                <Routes location={location}>
                 <Route path="/judge-panel" element={<ProtectedRoute allowedRoles={['admin', 'judge']}><JudgePanel /></ProtectedRoute>} />
                 <Route path="/team-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamPortalDashboard /></ProtectedRoute>} />
                 <Route path="/team-programme-registration" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamLeaderDashboard /></ProtectedRoute>} />
@@ -264,6 +266,7 @@ function App() {
                 <Route path="/" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : userInfo?.role === 'judge' ? '/judge-panel' : userInfo?.role === 'volunteer' ? '/volunteer-portal' : '/dashboard'} replace />} />
                 <Route path="*" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : userInfo?.role === 'judge' ? '/judge-panel' : userInfo?.role === 'volunteer' ? '/volunteer-portal' : '/dashboard'} replace />} />
               </Routes>
+              </ErrorBoundary>
             </AnimatePresence>
           </main>
         </div>

@@ -149,7 +149,7 @@ export default function TeamRegistrationListPage() {
                 delete next[cellId];
             } else {
                 // Add draft
-                next[cellId] = !isCurrentlySaved;
+                next[cellId] = !isCurrentlySavedLocal;
             }
             return next;
         });
