@@ -170,6 +170,22 @@ const UsersPage = () => {
     }
   };
 
+  
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setResetLoading(true);
+    try {
+      await api.patch('/auth/reset-password', resetForm);
+      alertAction('Password reset successfully!');
+      setResetModalOpen(false);
+      setResetForm({ userName: '', newPassword: '' });
+    } catch (err) {
+      alertAction(err.response?.data?.message || 'Failed to reset password');
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 w-full space-y-8">
       <div className="flex items-center justify-between mb-2">
