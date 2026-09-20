@@ -17,8 +17,11 @@ const createRegistration = async (req, res) => {
         }
 
         // Team leader check
-        if (req.user.role === 'team_leader' && req.user.team.toString() !== teamId) {
-            return res.status(403).json({ message: 'Can only register for your own team' });
+        if (req.user.role === 'team_leader') {
+            if (!req.user.team) return res.status(400).json({ message: 'Team leader has no associated team' });
+            if (req.user.team.toString() !== teamId) {
+                return res.status(403).json({ message: 'Can only register for your own team' });
+            }
         }
 
         const programme = await Programme.findById(programmeId);
@@ -51,7 +54,7 @@ const createRegistration = async (req, res) => {
         }
 
         for (const candidate of candidates) {
-            if (candidate.team.toString() !== teamId) {
+            if (!candidate.team || candidate.team.toString() !== teamId) {
                 return res.status(400).json({ message: `Candidate ${candidate.name} does not belong to the selected team` });
             }
         }
@@ -72,13 +75,15 @@ const createRegistration = async (req, res) => {
                     for (const reg of existingRegs) {
                         const p = reg.programme;
                         if (p && p.format === 'Individual' && p.type !== 'Kulliyyah' && p.category === candidate.category) {
-                            if (p.stageType.toLowerCase() === 'stage') stageCount++;
-                            if (p.stageType.toLowerCase() === 'non-stage') nonStageCount++;
+                            const pStageType = (p.stageType || '').toLowerCase();
+                            if (pStageType === 'stage') stageCount++;
+                            if (pStageType === 'non-stage') nonStageCount++;
                         }
                     }
 
-                    const isStage = !programme.isStarred && programme.stageType.toLowerCase() === 'stage';
-                    const isNonStage = !programme.isStarred && programme.stageType.toLowerCase() === 'non-stage';
+                    const progStageType = (programme.stageType || '').toLowerCase();
+                    const isStage = !programme.isStarred && progStageType === 'stage';
+                    const isNonStage = !programme.isStarred && progStageType === 'non-stage';
 
                     const newStageCount = stageCount + (isStage ? 1 : 0);
                     const newNonStageCount = nonStageCount + (isNonStage ? 1 : 0);
@@ -383,3 +388,4 @@ module.exports = {
     deleteRegistration,
     getProgrammeRegistrations,
 };
+

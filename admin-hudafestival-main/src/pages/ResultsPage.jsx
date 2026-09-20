@@ -1,7 +1,7 @@
 import { useAlert } from '../context/AlertContext';
 import Pagination from '../components/Pagination';
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Trophy, Download, Calendar, MapPin, Users, CheckCircle, Save, XCircle, AlertTriangle, Edit2 } from 'lucide-react';
+import { Search, Trophy, Download, Calendar, MapPin, Users, CheckCircle, Save, XCircle, AlertTriangle, Edit2, Trash2 } from 'lucide-react';
 import api from '../services/api';
 import Button from '../components/Button';
 
@@ -176,7 +176,18 @@ export default function ResultsPage() {
         setHasUnsavedChanges(true);
     };
 
-    const clearRow = (candidateId) => {
+    const clearRow = async (candidateId) => {
+        const result = resultsMap[candidateId];
+        if (result?._dbId) {
+            if (!confirm('Are you sure you want to permanently delete this result?')) return;
+            try {
+                await api.delete(/results/ + result._dbId);
+                alertAction('Result deleted successfully!');
+            } catch (err) {
+                alertAction(err.response?.data?.message || 'Failed to delete result.');
+                return;
+            }
+        }
         setResultsMap(prev => {
             const newMap = { ...prev };
             delete newMap[candidateId];
@@ -516,7 +527,7 @@ export default function ResultsPage() {
                                                                 </td>
                                                                 <td className="px-6 py-5 text-right">
                                                                     <button onClick={() => clearRow(cand._id)} disabled={isPublished} className="p-2 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg disabled:opacity-50 transition-colors">
-                                                                        <XCircle size={18} />
+                                                                        <Trash2 size={18} />
                                                                     </button>
                                                                 </td>
                                                             </tr>
@@ -652,3 +663,4 @@ export default function ResultsPage() {
         </div>
     );
 }
+

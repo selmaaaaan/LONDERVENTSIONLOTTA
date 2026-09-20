@@ -108,4 +108,11 @@ router.delete('/batch/:batchId', protect, authorize('admin'), async (req, res) =
     }
 });
 
+// @desc    Delete a single result
+// @route   DELETE /api/results/:id
+// @access  Private/Admin
+const { deleteResult } = require('../controllers/resultController.js');
+router.delete('/:id', protect, authorize('admin'), deleteResult);
+
 module.exports = router;
+

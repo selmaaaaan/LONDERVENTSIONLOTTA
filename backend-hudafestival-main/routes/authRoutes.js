@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const {
+    getAllUsers,
     loginAdmin,
     registerAdmin,
     teamLeaderLogin,
     createTeamLeader,
     getAllTeamLeaders,
-    updateTeamLeader,
-    deleteTeamLeader,
+    updateUser,
+    deleteUser,
     resetPassword
 } = require('../controllers/authController')
 
@@ -24,11 +25,17 @@ const loginLimiter = rateLimit({
 router.post('/login', loginLimiter, loginAdmin);
 router.post('/team-leader/login', loginLimiter, teamLeaderLogin);
 router.post('/signup', protect, authorize('admin'), registerAdmin);
+router.post('/register', protect, authorize('admin'), registerAdmin);
 router.post('/create-team-leader', protect, authorize('admin'), createTeamLeader);
+router.get('/users', protect, authorize('admin'), getAllUsers);
 router.get('/team-leaders', protect, authorize('admin'), getAllTeamLeaders);
-router.route('/team-leaders/:id')
-    .patch(protect, authorize('admin'), updateTeamLeader)
-    .delete(protect, authorize('admin'), deleteTeamLeader);
+router.route('/users/:id')
+    .put(protect, authorize('admin'), updateUser)
+    .delete(protect, authorize('admin'), deleteUser);
 
 module.exports = router;
 router.patch('/reset-password', protect, authorize('admin'), resetPassword);
+
+
+
+

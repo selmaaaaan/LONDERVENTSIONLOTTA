@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, UserPlus, Calendar, Trophy, Clock, LogOut, Sliders, Activity, ChevronLeft, ChevronRight, Settings, Sun, Moon, Image as ImageIcon, Bell, ClipboardList, FileText, CalendarClock, Radio, FileSpreadsheet, BookOpen, Table2, Search } from 'lucide-react';
 import Logo from './Logo';
 import { Link, useLocation } from 'react-router-dom';
@@ -21,6 +21,7 @@ const navItems = [
   { key: 'topic_management', label: 'Topic Management', icon: ClipboardList },
   { key: 'schedule', label: 'Schedule', icon: CalendarClock },
   { key: 'jury_slips', label: 'Participant List', icon: FileText },
+  { key: 'programme_jury_slip', label: 'Programme Jury Slip', icon: FileText },
   { key: 'conflict_checker', label: 'Conflict Checker', icon: FileText },
   { key: 'users', label: 'Users & Teams', icon: UserPlus },
   { key: 'settings', label: 'Settings', icon: Settings },
@@ -96,6 +97,7 @@ const Sidebar = ({ onLogout, userInfo }) => {
             topic_management: '/topic-management',
             schedule: '/schedule',
             jury_slips: '/jury-slips',
+            programme_jury_slip: '/programme-jury-slip',
             conflict_checker: '/conflict-checker',
             users: '/users',
             settings: '/settings',
@@ -126,7 +128,7 @@ const Sidebar = ({ onLogout, userInfo }) => {
 
       {/* User Profile & Controls */}
       <div className="p-3 border-t border-[var(--color-border)] space-y-2">
-        {/* Profile link — only admin/judge go to /settings; team leaders are NOT allowed */}
+        {/* Profile link � only admin/judge go to /settings; team leaders are NOT allowed */}
         {isTeamLeader ? (
           <div className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm cursor-default">
             <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-bold shrink-0" style={{ backgroundColor: teamColor }}>
@@ -154,3 +156,4 @@ const Sidebar = ({ onLogout, userInfo }) => {
 };
 
 export default Sidebar;
+

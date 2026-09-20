@@ -11,6 +11,9 @@ const Settings = require('../models/Settings.js');
 const savePendingResults = async (req, res) => {
     const { results } = req.body;
     const { id: programmeId } = req.params;
+    const Programme = require('../models/Programme');
+    const prog = await Programme.findById(programmeId);
+    if (prog && prog.isResultPublished) return res.status(400).json({ message: 'Programme is published. Unpublish first.' });
     try {
         for (const resultData of results) {
             const { candidateId, rank, grade } = resultData;
@@ -173,6 +176,10 @@ const savePendingResultsBulk = async (req, res) => {
     const { results, batchId } = req.body; // Array of { candidateId, rank, grade, remarks }
     const { id: programmeId } = req.params;
     
+    const Programme = require('../models/Programme');
+    const programme = await Programme.findById(programmeId);
+    if (!programme) return res.status(404).json({ message: 'Programme not found' });
+    if (programme.isResultPublished) return res.status(400).json({ message: 'Programme is published. Unpublish first.' });
     if (!Array.isArray(results)) {
         return res.status(400).json({ message: 'Results must be an array.' });
     }
@@ -276,4 +283,35 @@ const getJudgmentFeedback = async (req, res) => {
     }
 };
 
-module.exports = { savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+const deleteResult = async (req, res) => {
+    try {
+        const result = await Result.findById(req.params.id);
+        if (!result) return res.status(404).json({ message: 'Result not found' });
+        
+        if (result.status === 'approved') {
+            return res.status(403).json({ message: 'This result is published � unpublish its batch first.' });
+        }
+
+        
+        // Cascade point reversal in case points were orphaned or result was somehow approved
+        const pointsToRevert = result.totalPoints || 0;
+        if (pointsToRevert > 0) {
+            const Candidate = require('../models/Candidate');
+            const Team = require('../models/Team');
+            await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -pointsToRevert } });
+            const candidate = await Candidate.findById(result.candidate);
+            if (candidate && candidate.team) {
+                await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -pointsToRevert } });
+            }
+        }
+        await Result.findByIdAndDelete(result._id);
+        
+        await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_DELETED', entityType: 'Result', entityId: result._id, req });
+        res.status(200).json({ message: 'Result deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting result:', error);
+        res.status(500).json({ message: 'Failed to delete result', error: error.message || 'Unknown error' });
+    }
+};
+module.exports = { deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+

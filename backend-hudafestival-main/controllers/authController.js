@@ -6,7 +6,7 @@ const generateToken = require('../utils/generateToken')
 // @route POST /api/auth/signup
 // @access Private/Admin 
 const registerAdmin = async (req, res) => {
-    const { userName, password } = req.body;
+    const { userName, password, role, team } = req.body;
     if (!userName || !password) {
         return res.status(400).json({ message: 'Please provide every details'})
     }
@@ -19,7 +19,8 @@ const registerAdmin = async (req, res) => {
         const user = await User.create({
             userName,
             password,
-            role: 'admin'
+            role: role || 'admin',
+            team: team || undefined
         })
         if (user) {
             res.status(201).json({
@@ -132,47 +133,41 @@ const getAllTeamLeaders = async (req, res) => {
     }
 }
 
-const updateTeamLeader = async (req, res) => {
+const updateUser = async (req, res) => {
     try {
-        const { userName, password, team } = req.body;
+        const { userName, password, team, role } = req.body;
         const user = await User.findById(req.params.id);
         
-        if (!user || user.role !== 'team_leader') {
-            return res.status(404).json({ message: 'Team leader not found' });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
         if (userName) user.userName = userName;
-        if (team) user.team = team;
-        
-        // Use user.setPassword method or just assign user.password = password and let pre-save hook hash it.
-        // Wait, does User model have pre-save hook? Let's check User model...
-        // Actually, if we re-assign password, it should be hashed. Let's assume it has a pre('save') hook.
-        // Wait! We can check models/User.js to be sure.
+        if (team !== undefined) user.team = team || null;
+        if (role) user.role = role;
         if (password) user.password = password;
 
         await user.save();
-        res.status(200).json({ message: 'Team leader updated successfully' });
+        res.status(200).json({ message: 'User updated successfully' });
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({ message: 'Username already exists' });
-        }
-        res.status(500).json({ message: 'Server error' });
+        if (error.code === 11000) return res.status(400).json({ message: 'Username already exists' });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
 
-const deleteTeamLeader = async (req, res) => {
+const deleteUser = async (req, res) => {
     try {
         const user = await User.findById(req.params.id);
-        if (!user || user.role !== 'team_leader') {
-            return res.status(404).json({ message: 'Team leader not found' });
-        }
-        await User.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: 'Team leader deleted successfully' });
+        if (!user) return res.status(404).json({ message: 'User not found' });
+
+        await User.deleteOne({ _id: user._id });
+        res.status(200).json({ message: 'User deleted successfully' });
     } catch (error) {
-        console.error('Error deleting team leader:', error);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error', error: error.message });
     }
 };
+
+
 
 
 const resetPassword = async (req, res) => {
@@ -195,13 +190,25 @@ const resetPassword = async (req, res) => {
     }
 };
 
-module.exports = {
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await User.find({}, '-password').populate('team', 'name');
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to fetch users', error: error.message || 'Unknown error' });
+    }
+};
+module.exports = { getAllUsers, 
     resetPassword,
-    updateTeamLeader,
-    deleteTeamLeader,
+    updateUser,
+    deleteUser,
     loginAdmin,
     registerAdmin,
     teamLeaderLogin,
     createTeamLeader,
     getAllTeamLeaders,
 }
+
+
+
+

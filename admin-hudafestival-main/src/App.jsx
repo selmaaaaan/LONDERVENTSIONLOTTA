@@ -21,6 +21,7 @@ import ConflictCheckerPage from './pages/ConflictCheckerPage';
 import UsersPage from './pages/UsersPage';
 import SchedulePage from './pages/SchedulePage';
 import JurySlipsPage from './pages/JurySlipsPage';
+import ProgrammeJurySlipPage from './pages/ProgrammeJurySlipPage';
 import VolunteerPortal from './pages/VolunteerPortal';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Search, Bell, AlertTriangle, LogOut, Sun, Moon } from 'lucide-react';
@@ -258,7 +259,7 @@ function App() {
                 <Route path="/judgment-feedback" element={<ProtectedRoute allowedRoles={['admin']}><JudgmentFeedbackPage /></ProtectedRoute>} />
                 <Route path="/activity-logs" element={<ProtectedRoute allowedRoles={['admin']}><ActivityLogsPage /></ProtectedRoute>} />
                 <Route path="/topic-management" element={<ProtectedRoute allowedRoles={['admin']}><TopicManagementPage /></ProtectedRoute>} />
-                <Route path="/jury-slips" element={<ProtectedRoute allowedRoles={['admin']}><JurySlipsPage /></ProtectedRoute>} />
+                <Route path="/jury-slips" element={<ProtectedRoute allowedRoles={['admin']}><JurySlipsPage /></ProtectedRoute>} />`n                <Route path="/programme-jury-slip" element={<ProtectedRoute allowedRoles={['admin']}><ProgrammeJurySlipPage /></ProtectedRoute>} />
                 <Route path="/conflict-checker" element={<ProtectedRoute allowedRoles={['admin']}><ConflictCheckerPage /></ProtectedRoute>} />
                 <Route path="/schedule" element={<ProtectedRoute allowedRoles={['admin']}><SchedulePage /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage /></ProtectedRoute>} />
@@ -287,3 +288,4 @@ function App() {
 }
 
 export default App;
+

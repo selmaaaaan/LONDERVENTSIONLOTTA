@@ -39,6 +39,66 @@ const SettingsPage = () => {
       }
     });
   const [loading, setLoading] = useState(true);
+  const [teams, setTeams] = useState([]);
+  const [showTeamModal, setShowTeamModal] = useState(false);
+  const [editingTeam, setEditingTeam] = useState(null);
+  const [deletingTeam, setDeletingTeam] = useState(null);
+  const [showConfirmDeleteTeam, setShowConfirmDeleteTeam] = useState(false);
+  const [teamForm, setTeamForm] = useState({ name: '', color: '#000000' });
+  const [submittingTeam, setSubmittingTeam] = useState(false);
+
+  useEffect(() => {
+    fetchTeams();
+  }, []);
+
+  const fetchTeams = async () => {
+    try {
+      const res = await api.get('/teams');
+      setTeams(res.data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleTeamTopic = async (team) => {
+    try {
+      const newVal = !(team.isTopicRegistrationOpen !== false);
+      await api.put(`/teams/${team._id}`, { isTopicRegistrationOpen: newVal });
+      setTeams(teams.map(t => t._id === team._id ? { ...t, isTopicRegistrationOpen: newVal } : t));
+    } catch (err) {
+      alertAction(err.response?.data?.message || 'Error updating team topic registration');
+    }
+  };
+
+  const handleSaveTeam = async (e) => {
+    e.preventDefault();
+    setSubmittingTeam(true);
+    try {
+      if (editingTeam) {
+        await api.put(`/teams/${editingTeam._id}`, teamForm);
+      } else {
+        await api.post('/teams', teamForm);
+      }
+      setShowTeamModal(false);
+      setEditingTeam(null);
+      setTeamForm({ name: '', color: '#000000' });
+      fetchTeams();
+    } catch (err) {
+      alertAction(err.response?.data?.message || 'Error saving team');
+    } finally {
+      setSubmittingTeam(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    try {
+      await api.delete(`/teams/${deletingTeam._id}`);
+      setShowConfirmDeleteTeam(false);
+      fetchTeams();
+    } catch (err) {
+      alertAction(err.response?.data?.message || 'Error deleting team');
+    }
+  };
   const [error, setError] = useState('');
     const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
     const isAdmin = userInfo?.role === 'admin';
@@ -200,6 +260,45 @@ const SettingsPage = () => {
         <>
           </>
           )}
+
+                    {/* Teams Management */}
+          <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-lg font-semibold text-[var(--color-text-heading)]">Teams</h2>
+                <p className="text-sm text-[var(--color-text-muted)]">Manage teams and their registration states.</p>
+              </div>
+              <Button onClick={() => setShowTeamModal(true)} variant="primary">Add Team</Button>
+            </div>
+            
+            <div className="space-y-3">
+              {teams.map(team => (
+                <div key={team._id} className="flex items-center justify-between p-3 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 rounded-full border border-black/10" style={{ backgroundColor: team.color || '#ccc' }}></div>
+                    <span className="font-medium text-[var(--color-text-heading)]">{team.name}</span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex flex-col items-center">
+                      <span className="text-[10px] text-[var(--color-text-muted)] mb-1">Topics</span>
+                      <button onClick={() => handleToggleTeamTopic(team)} className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${team.isTopicRegistrationOpen !== false ? 'bg-green-500' : 'bg-red-500'}`}>
+                        <span className={`inline-block h-2 w-2 transform rounded-full bg-white transition-transform ${team.isTopicRegistrationOpen !== false ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <div className="flex gap-2">
+                      <button onClick={() => { setEditingTeam(team); setTeamForm({ name: team.name, color: team.color || '#000000' }); setShowTeamModal(true); }} className="p-1.5 text-[var(--color-text-muted)] hover:text-blue-500 rounded-md hover:bg-blue-500/10">
+                        <Edit2 size={16} />
+                      </button>
+                      <button onClick={() => { setDeletingTeam(team); setShowConfirmDeleteTeam(true); }} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-500 rounded-md hover:bg-red-500/10">
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {teams.length === 0 && <div className="text-sm text-[var(--color-text-muted)] py-2">No teams found.</div>}
+            </div>
+          </div>
 
           {/* Theme Preferences */}
           <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-6">
@@ -403,28 +502,58 @@ const SettingsPage = () => {
             )}
           </div>
 
-          <ConfirmDialog
-            open={showConfirmToggleReg}
-            title={settings.isRegistrationOpen ? "Close Registration" : "Open Registration"}
-            message={settings.isRegistrationOpen 
-              ? "Are you sure you want to close registration? Team leaders will no longer be able to assign candidates to programmes." 
-              : "Are you sure you want to open registration? Team leaders will be able to start assigning candidates again."}
-            onConfirm={handleToggleRegistration}
-            onCancel={() => setShowConfirmToggleReg(false)}
-            confirmText={settings.isRegistrationOpen ? "Close Registration" : "Open Registration"}
-          />
+        <Modal isOpen={showTeamModal} onClose={() => setShowTeamModal(false)} title={editingTeam ? "Edit Team" : "Add Team"}>
+          <form onSubmit={handleSaveTeam} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-heading)] mb-1">Team Name</label>
+              <input type="text" required value={teamForm.name} onChange={e => setTeamForm({...teamForm, name: e.target.value})} className="w-full px-3 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-md text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--color-text-heading)] mb-1">Team Color</label>
+              <div className="flex gap-2">
+                {['#000000', '#EF4444', '#F59E0B', '#10B981', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899'].map(c => (
+                  <button key={c} type="button" onClick={() => setTeamForm({...teamForm, color: c})} className={`w-8 h-8 rounded-full border-2 ${teamForm.color === c ? 'border-blue-500' : 'border-transparent'}`} style={{ backgroundColor: c }} />
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end pt-4">
+              <Button type="button" variant="ghost" onClick={() => setShowTeamModal(false)} className="mr-2">Cancel</Button>
+              <Button type="submit" variant="primary">Save</Button>
+            </div>
+          </form>
+        </Modal>
 
-          <ConfirmDialog
-            open={showConfirmToggleTopic}
-            title={settings.topicRegistrationEnabled ? "Close Topic Registration" : "Open Topic Registration"}
-            message={settings.topicRegistrationEnabled 
-              ? "Are you sure you want to close topic registration? Team leaders will no longer be able to submit topics." 
-              : "Are you sure you want to open topic registration? Team leaders will be able to submit topics again."}
-            onConfirm={handleToggleTopic}
-            onCancel={() => setShowConfirmToggleTopic(false)}
-            confirmText={settings.topicRegistrationEnabled ? "Close Topic Registration" : "Open Topic Registration"}
-          />
-        </div>
+        <ConfirmDialog
+          open={showConfirmDeleteTeam}
+          title="Delete Team"
+          message={`Are you sure you want to delete "${deletingTeam?.name}"?`}
+          onConfirm={handleDeleteTeam}
+          onCancel={() => setShowConfirmDeleteTeam(false)}
+          confirmText="Delete"
+        />
+
+        <ConfirmDialog
+          open={showConfirmToggleReg}
+          title={settings.isRegistrationOpen ? "Close Registration" : "Open Registration"}
+          message={settings.isRegistrationOpen 
+            ? "Are you sure you want to close registration? Team leaders will no longer be able to assign candidates to programmes." 
+            : "Are you sure you want to open registration? Team leaders will be able to start assigning candidates again."}
+          onConfirm={handleToggleRegistration}
+          onCancel={() => setShowConfirmToggleReg(false)}
+          confirmText={settings.isRegistrationOpen ? "Close Registration" : "Open Registration"}
+        />
+
+        <ConfirmDialog
+          open={showConfirmToggleTopic}
+          title={settings.topicRegistrationEnabled ? "Close Topic Registration" : "Open Topic Registration"}
+          message={settings.topicRegistrationEnabled 
+            ? "Are you sure you want to close topic registration? Team leaders will no longer be able to submit topics." 
+            : "Are you sure you want to open topic registration? Team leaders will be able to start assigning candidates again."}
+          onConfirm={handleToggleTopic}
+          onCancel={() => setShowConfirmToggleTopic(false)}
+          confirmText={settings.topicRegistrationEnabled ? "Close Topic Registration" : "Open Topic Registration"}
+        />
+      </div>
   );
 };
 

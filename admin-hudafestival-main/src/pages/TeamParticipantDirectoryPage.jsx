@@ -115,10 +115,7 @@ const TeamParticipantDirectoryPage = () => {
         'SL.No': ++slNo,
         'Ad No': c.admissionNo || '-',
         'Name': c.name || '-',
-        'Team': reg.team?.name || '-',
-        'Position': '',
-        'Grade': '',
-        'Remarks': ''
+        'Team': reg.team?.name || '-'
       }))
     );
 
@@ -168,10 +165,7 @@ const TeamParticipantDirectoryPage = () => {
             'SL.No': ++slNoAll,
             'Ad No': c.admissionNo || '-',
             'Name': c.name || '-',
-            'Team': reg.team?.name || '-',
-            'Position': '',
-            'Grade': '',
-            'Remarks': ''
+            'Team': reg.team?.name || '-'
           }))
         );
 
@@ -419,10 +413,10 @@ const TeamParticipantDirectoryPage = () => {
                               
                               <th className="border-r-[1.5px] border-black px-1 text-[11px] font-black text-center w-28">AD No.</th>
                               <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center">NAME</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-36">TEAM</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-32">POSITION</th>
-                              <th className="border-r-[1.5px] border-black px-2 text-[11px] font-black text-center w-24">GRADE</th>
-                              <th className="px-2 text-[11px] font-black text-center w-40">REMARKS</th>
+                              <th className="px-2 text-[11px] font-black text-center w-48">TEAM</th>
+                              
+                              
+                              
                             </tr>
                           </thead>
                           <tbody>
@@ -431,10 +425,8 @@ const TeamParticipantDirectoryPage = () => {
                                 <td className="border-r-[1.5px] border-black text-center font-black text-[16px]">{p * ROWS_PER_PAGE + i + 1}</td>
                                 <td className="border-r-[1.5px] border-black text-center font-bold text-[12px]">{data?.c?.admissionNo || ''}</td>
                                 <td className="border-r-[1.5px] border-black px-3 font-bold text-[12px] uppercase truncate overflow-hidden max-w-[200px]">{data?.c?.name || ''}</td>
-                                <td className="border-r-[1.5px] border-black px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[100px]">{data?.reg?.team?.name || ''}</td>
-                                <td className="border-r-[1.5px] border-black"></td>
-                                <td className="border-r-[1.5px] border-black"></td>
-                                <td className=""></td>
+                                <td className="px-2 font-bold text-[11px] text-center uppercase truncate overflow-hidden max-w-[120px]">{data?.reg?.team?.name || ''}</td>
+                                
                               </tr>
                             ))}
                           </tbody>
@@ -474,3 +466,10 @@ const TeamParticipantDirectoryPage = () => {
 };
 
 export default TeamParticipantDirectoryPage;
+
+
+
+
+
+
+
