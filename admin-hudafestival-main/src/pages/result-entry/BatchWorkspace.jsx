@@ -382,7 +382,7 @@ export default function BatchWorkspace() {
                 <div className="print:hidden">
                     <EditProgrammeModal 
                         programme={editingProgramme} 
-                        batchId={batch._id} 
+                        batchId={batch._id} isPublished={batch.status === 'published'} 
                         onClose={() => setEditingProgramme(null)}
                         onSaved={() => {
                             setEditingProgramme(null);

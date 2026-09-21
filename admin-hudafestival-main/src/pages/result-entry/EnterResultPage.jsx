@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Save, AlertCircle } from 'lucide-react';
+import { Search, Save, AlertCircle, Trash2 } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { useResultUI } from '../../context/ResultEntryUIContext';
@@ -71,7 +71,7 @@ export default function EnterResultPage() {
             const rMap = {};
             if (res.data.results) {
                 res.data.results.forEach(r => {
-                    rMap[r.candidate] = { rank: r.rank, grade: r.grade, remarks: r.remarks, batchId: r.batchId };
+                    rMap[r.candidate] = { rank: r.rank, grade: r.grade, remarks: r.remarks, batchId: r.batchId, status: r.status, _id: r._id };
                 });
             }
             setResultsMap(rMap);
@@ -91,10 +91,10 @@ export default function EnterResultPage() {
         }));
     };
 
-        const handleClear = () => {
-        // Check if any loaded result is approved
         const hasApproved = Object.values(resultsMap).some(r => r.status === 'approved');
-        
+
+    const handleClear = () => {
+        // Check if any loaded result is approved
         showModal({
             title: hasApproved ? 'Delete Published Result?' : 'Clear Results?',
             message: hasApproved
@@ -116,6 +116,43 @@ export default function EnterResultPage() {
         });
     };
 
+    
+    const handleDeleteSingleResult = (candidateId, cName) => {
+        
+        const promptRes = window.prompt(`This result is already public - deleting ${cName}'s result will immediately update the live leaderboard and public site.\n\nType the candidate's name to confirm:\n${cName}`);
+        if (promptRes !== cName) {
+            showToast('Candidate name did not match, delete cancelled.', 'error');
+            return;
+        }
+        showModal({
+            title: 'Delete Published Result?',
+            message: `You are about to irreversibly delete ${cName}'s live result and reverse their points. Proceed?`,
+            confirmText: 'Delete Live Result',
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const resultId = resultsMap[candidateId]?._id;
+                    if (resultId) {
+                        await api.delete(`/result-entry/published-results/${resultId}`);
+                        showToast('Live result deleted and points reversed', 'success');
+                        // Refresh data
+                        const res = await api.get(`/result-entry/programmes/${selectedProg._id}/candidates`);
+                        const rMap = {};
+                        if (res.data.results) {
+                            res.data.results.forEach(r => {
+                                rMap[r.candidate] = { rank: r.rank, grade: r.grade, remarks: r.remarks, batchId: r.batchId, status: r.status, _id: r._id };
+                            });
+                        }
+                        setResultsMap(rMap);
+                    }
+                } catch (err) {
+                    showToast('Failed to delete live result', 'error');
+                }
+            }
+        });
+        
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         setSaveError(null);
@@ -130,10 +167,17 @@ export default function EnterResultPage() {
                 batchId: resultsMap[c._id]?.batchId || null 
             }));
 
-            await api.post('/result-entry/standalone-results', {
-                programmeId: selectedProg._id,
-                results: payload
-            });
+            if (hasApproved) {
+                await api.put('/result-entry/batches/legacy/published-results', {
+                    programmeId: selectedProg._id,
+                    results: payload
+                });
+            } else {
+                await api.post('/result-entry/standalone-results', {
+                    programmeId: selectedProg._id,
+                    results: payload
+                });
+            }
             
             setSaveSuccess(true);
             setTimeout(() => {
@@ -250,9 +294,22 @@ export default function EnterResultPage() {
                                         return (
                                             <tr key={candidate._id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-background)]/50 transition-colors">
                                                 <td className="px-6 py-4">
-                                                    <div className="font-semibold text-[var(--color-text-heading)]">{candidate.name}</div>
-                                                    <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
-                                                </td>
+    <div className="flex justify-between items-start">
+        <div>
+            <div className="font-semibold text-[var(--color-text-heading)]">{candidate.name}</div>
+            <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
+        </div>
+        {hasApproved && rData.status === 'approved' && (
+            <button 
+                onClick={() => handleDeleteSingleResult(candidate._id, candidate.name)}
+                className="text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors ml-4" 
+                title="Delete Live Result"
+            >
+                <Trash2 size={16} />
+            </button>
+        )}
+    </div>
+</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex gap-2">
                                                         {[1, 2, 3].map(pos => (

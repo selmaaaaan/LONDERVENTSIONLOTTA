@@ -11,6 +11,27 @@ const { calculatePointsForResult } = require('../controllers/resultController');
 const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
 const mongoose = require('mongoose');
 
+async function adjustCandidatePoints(candidateId, pointDelta) {
+    if (!pointDelta || pointDelta === 0) return;
+    const Candidate = require('../models/Candidate');
+    const Team = require('../models/Team');
+    
+    const candidate = await Candidate.findById(candidateId);
+    if (candidate) { console.log('Adjusting ', candidateId, ' by ', pointDelta, ' old: ', candidate.totalPoints);
+        candidate.totalPoints = Math.max(0, (candidate.totalPoints || 0) + pointDelta);
+        await candidate.save();
+        
+        if (candidate.team) {
+            const team = await Team.findById(candidate.team);
+            if (team) {
+                team.totalPoints = Math.max(0, (team.totalPoints || 0) + pointDelta);
+                await team.save();
+            }
+        }
+    }
+}
+
+
 router.use(protect);
 router.use(authorize('result_entry'));
 
@@ -416,7 +437,25 @@ router.delete('/batches/:id', async (req, res) => {
     try {
         const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id });
         if (!batch) return res.status(404).json({ message: 'Batch not found' });
-        if (batch.status === 'published') return res.status(400).json({ message: 'Published batches cannot be deleted this way' });
+        
+        if (batch.status === 'published') {
+            const results = await Result.find({ batchId: batch._id, status: 'approved' });
+            for (const r of results) {
+                await adjustCandidatePoints(r.candidate, -(r.totalPoints || 0));
+                await r.deleteOne();
+            }
+            
+            const { logAction } = require('../utils/logAction');
+            await logAction({
+                actor: req.user._id, actorRole: req.user.role,
+                action: 'PUBLISHED_BATCH_DELETED',
+                entityType: 'Batch', entityId: batch._id,
+                details: { batchName: batch.name, resultsCount: results.length },
+                req
+            });
+            await batch.deleteOne();
+            return res.json({ message: 'Published batch deleted and all points reversed.' });
+        }
         
         // Unlink results and reset them to draft (so they return to Ready state even if they were pending)
         await Result.updateMany({ batchId: batch._id }, { $set: { batchId: null, status: 'draft' } });
@@ -610,40 +649,31 @@ router.put('/batches/:id/recall', async (req, res) => {
 router.put('/batches/:id/published-results', async (req, res) => {
     const { results, programmeId } = req.body;
     try {
-        const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id });
-        if (!batch) return res.status(404).json({ message: 'Batch not found' });
-        if (batch.status !== 'published') {
-            return res.status(400).json({ message: 'This endpoint is only for already-published batches.' });
+        let batchIdQuery = null;
+        if (req.params.id !== 'legacy') {
+            const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id });
+            if (!batch) return res.status(404).json({ message: 'Batch not found' });
+            if (batch.status !== 'published') {
+                return res.status(400).json({ message: 'This endpoint is only for already-published batches.' });
+            }
+            batchIdQuery = batch._id;
         }
-        
+
         const programme = await Programme.findById(programmeId);
         const { logAction } = require('../utils/logAction');
 
         for (const rData of results) {
-            const existingResult = await Result.findOne({ 
+            const query = { 
                 programme: programmeId, 
                 candidate: rData.candidateId, 
-                batchId: batch._id,
                 status: 'approved' 
-            });
-
-            if (!existingResult) continue;
+            };
+            if (batchIdQuery) query.batchId = batchIdQuery;
+            
+            const existingResult = await Result.findOne(query); console.log('Query:', query, 'Result:', !!existingResult); if (!existingResult) continue;
 
             const oldPoints = existingResult.totalPoints || 0;
-            const candidate = await Candidate.findById(existingResult.candidate);
-            
-            if (candidate) {
-                candidate.totalPoints = Math.max(0, (candidate.totalPoints || 0) - oldPoints);
-                await candidate.save();
-                
-                if (candidate.team) {
-                    const team = await Team.findById(candidate.team);
-                    if (team) {
-                        team.totalPoints = Math.max(0, (team.totalPoints || 0) - oldPoints);
-                        await team.save();
-                    }
-                }
-            }
+            await adjustCandidatePoints(existingResult.candidate, -oldPoints);
 
             const tempResult = { rank: rData.rank, grade: rData.grade };
             const calculated = calculatePointsForResult(tempResult, programme, POSITION_POINTS, GRADE_POINTS);
@@ -657,17 +687,7 @@ router.put('/batches/:id/published-results', async (req, res) => {
             existingResult.submittedBy = req.user._id;
             await existingResult.save();
 
-            if (candidate) {
-                candidate.totalPoints += calculated.totalPoints;
-                await candidate.save();
-                if (candidate.team) {
-                    const team = await Team.findById(candidate.team);
-                    if (team) {
-                        team.totalPoints += calculated.totalPoints;
-                        await team.save();
-                    }
-                }
-            }
+            await adjustCandidatePoints(existingResult.candidate, calculated.totalPoints);
 
             await logAction({
                 actor: req.user._id, actorRole: req.user.role,
@@ -679,6 +699,35 @@ router.put('/batches/:id/published-results', async (req, res) => {
         }
         res.json({ message: 'Live changes applied.' });
     } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// @desc    Delete a single published result
+router.delete('/published-results/:id', async (req, res) => {
+    try {
+        const existingResult = await Result.findById(req.params.id).populate('programme candidate');
+        if (!existingResult) return res.status(404).json({ message: 'Result not found' });
+        if (existingResult.status !== 'approved') return res.status(400).json({ message: 'Result is not published' });
+
+        const oldPoints = existingResult.totalPoints || 0;
+        await adjustCandidatePoints(existingResult.candidate._id, -oldPoints);
+        
+        const { logAction } = require('../utils/logAction');
+        await logAction({
+            actor: req.user._id, actorRole: req.user.role,
+            action: 'RESULT_DELETED_POST_PUBLISH',
+            entityType: 'Result', entityId: existingResult._id,
+            details: { programme: existingResult.programme.name, candidateId: existingResult.candidate._id, pointsReversed: oldPoints },
+            req
+        });
+
+        await existingResult.deleteOne();
+        res.json({ message: 'Live result deleted and points reversed.' });
+    } catch (error) {
+        console.error(error);
         res.status(500).json({ message: 'Server error' });
     }
 });

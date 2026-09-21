@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, AlertCircle, X } from 'lucide-react';
+import { Save, AlertCircle, X, Trash2 } from 'lucide-react';
+import { useResultUI } from '../context/ResultEntryUIContext';
 import api from '../services/api';
 
-export default function EditProgrammeModal({ programme, batchId, onClose, onSaved }) {
+export default function EditProgrammeModal({ programme, batchId, isPublished, onClose, onSaved }) {
+    const { showModal, showToast } = useResultUI();
     const [candidates, setCandidates] = useState([]);
     const [resultsMap, setResultsMap] = useState({});
     const [isLoading, setIsLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function EditProgrammeModal({ programme, batchId, onClose, onSave
                 if (res.data.results) {
                     res.data.results.forEach(r => {
                         // Keep their existing batchId if they have one
-                        rMap[r.candidate] = { rank: r.rank, grade: r.grade, remarks: r.remarks, batchId: r.batchId };
+                        rMap[r.candidate] = { rank: r.rank, grade: r.grade, remarks: r.remarks, batchId: r.batchId, status: r.status, _id: r._id };
                     });
                 }
                 setResultsMap(rMap);
@@ -47,6 +49,35 @@ export default function EditProgrammeModal({ programme, batchId, onClose, onSave
         }));
     };
 
+    
+    const handleDeleteSingleResult = (candidateId, cName) => {
+        
+        const promptRes = window.prompt(`This result is already public - deleting ${cName}'s result will immediately update the live leaderboard and public site.\n\nType the candidate's name to confirm:\n${cName}`);
+        if (promptRes !== cName) {
+            showToast('Candidate name did not match, delete cancelled.', 'error');
+            return;
+        }
+        showModal({
+            title: 'Delete Published Result?',
+            message: `You are about to irreversibly delete ${cName}'s live result and reverse their points. Proceed?`,
+            confirmText: 'Delete Live Result',
+            isDestructive: true,
+            onConfirm: async () => {
+                try {
+                    const resultId = resultsMap[candidateId]?._id;
+                    if (resultId) {
+                        await api.delete(`/result-entry/published-results/${resultId}`);
+                        showToast('Live result deleted and points reversed', 'success');
+                        onSaved();
+                    }
+                } catch (err) {
+                    showToast('Failed to delete live result', 'error');
+                }
+            }
+        });
+        
+    };
+
     const handleSave = async () => {
         setIsSaving(true);
         try {
@@ -59,11 +90,18 @@ export default function EditProgrammeModal({ programme, batchId, onClose, onSave
                 batchId: batchId 
             }));
 
-            await api.post('/result-entry/standalone-results', {
-                programmeId: programme._id,
-                results: payload,
-                batchId: batchId
-            });
+            if (isPublished) {
+                await api.put(`/result-entry/batches/${batchId || 'legacy'}/published-results`, {
+                    programmeId: programme._id,
+                    results: payload
+                });
+            } else {
+                await api.post('/result-entry/standalone-results', {
+                    programmeId: programme._id,
+                    results: payload,
+                    batchId: batchId
+                });
+            }
             onSaved();
         } catch (err) {
             setError(err.response?.data?.message || "Failed to save results");
@@ -116,9 +154,22 @@ export default function EditProgrammeModal({ programme, batchId, onClose, onSave
                                         return (
                                             <tr key={candidate._id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-background)]/50 transition-colors">
                                                 <td className="px-6 py-4">
-                                                    <div className="font-semibold text-[var(--color-text-heading)]">{candidate.name}</div>
-                                                    <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
-                                                </td>
+    <div className="flex justify-between items-start">
+        <div>
+            <div className="font-semibold text-[var(--color-text-heading)]">{candidate.name}</div>
+            <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
+        </div>
+        {isPublished && rData.status === 'approved' && (
+            <button 
+                onClick={() => handleDeleteSingleResult(candidate._id, candidate.name)}
+                className="text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors ml-4" 
+                title="Delete Live Result"
+            >
+                <Trash2 size={16} />
+            </button>
+        )}
+    </div>
+</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex gap-2">
                                                         {[1, 2, 3].map(pos => (
