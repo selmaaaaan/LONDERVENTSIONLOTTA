@@ -8,7 +8,7 @@ import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import CandidatePage from './pages/CandidatesPage';
 import ProgrammesPage from './pages/ProgrammesPage';
-import ResultsPage from './pages/ResultsPage';
+// import ResultsPage from './pages/ResultsPage';
 import TeamRegistrationListPage from './pages/TeamRegistrationListPage';
 import PendingResultsPage from './pages/PendingResultPage';
 import PointAdjustmentPage from './pages/PointAdjustmentPage';
@@ -22,13 +22,10 @@ import UsersPage from './pages/UsersPage';
 import SchedulePage from './pages/SchedulePage';
 import JurySlipsPage from './pages/JurySlipsPage';
 import ProgrammeJurySlipPage from './pages/ProgrammeJurySlipPage';
-import VolunteerPortal from './pages/VolunteerPortal';
 import ConfirmDialog from './components/ConfirmDialog';
 import { Search, Bell, AlertTriangle, LogOut, Sun, Moon } from 'lucide-react';
 import api from './services/api';
 
-import JudgePanel from './pages/JudgePanel';
-import JudgmentFeedbackPage from './pages/JudgmentFeedbackPage';
 import TeamLeaderDashboard from './pages/TeamLeaderDashboard';
 import TeamTopicRegistrationPage from './pages/TeamTopicRegistrationPage';
 import RegistrationReviewPage from './pages/RegistrationReviewPage';
@@ -40,15 +37,26 @@ import TeamPortalDashboard from './pages/TeamPortalDashboard';
 import TeamParticipantDirectoryPage from './pages/TeamParticipantDirectoryPage';
 import LoadingScreen from './components/LoadingScreen';
 
+import ResultEntryLayout from './components/ResultEntryLayout';
+import ResultDashboard from './pages/result-entry/ResultDashboard';
+import EnterResultPage from './pages/result-entry/EnterResultPage';
+import ReadyResultsPage from './pages/result-entry/ReadyResultsPage';
+import BatchDashboard from './pages/result-entry/BatchDashboard';
+import BatchWorkspace from './pages/result-entry/BatchWorkspace';
+import BatchPrintView from './pages/result-entry/BatchPrintView';
+
+
+
+
+
 function App() {
   const savedInfo = localStorage.getItem('userInfo');
   const initialInfo = savedInfo ? JSON.parse(savedInfo) : null;
   
   const getInitialPage = (info) => {
     if (!info) return 'dashboard';
-    if (info.role === 'judge') return 'judge_panel';
     if (info.role === 'team_leader') return 'team_dashboard';
-    if (info.role === 'volunteer') return 'volunteer_portal';
+    if (info.role === 'result_entry') return 'result_entry';
     return 'dashboard';
   };
 
@@ -146,15 +154,19 @@ function App() {
       const parsed = JSON.parse(saved);
       setUserInfo(parsed);
       const initPage = getInitialPage(parsed);
-      const path = { dashboard: '/dashboard', judge_panel: '/judge-panel', team_dashboard: '/team-dashboard', volunteer_portal: '/volunteer-portal' }[initPage] || '/dashboard';
+      const path = { dashboard: '/dashboard', team_dashboard: '/team-dashboard', result_entry: '/result-entry/dashboard' }[initPage] || '/dashboard';
       navigate(path);
     }
   };
+
 
   const handleLogout = () => {
     localStorage.removeItem('userInfo');
     setIsAuthenticated(false);
   };
+
+  
+
 
   const ProtectedRoute = ({ children, allowedRoles }) => {
     if (!userInfo) return <Navigate to="/" replace />;
@@ -172,6 +184,25 @@ function App() {
 
         
       </>
+    );
+  }
+
+  
+  if (userInfo?.role === 'result_entry') {
+    return (
+      <ErrorBoundary key={location.pathname}>
+        <Routes location={location}>
+          <Route path="/result-entry/batches/:id/print" element={<BatchPrintView />} />
+            <Route element={<ResultEntryLayout />}>
+            <Route path="/result-entry/dashboard" element={<ResultDashboard />} />
+              <Route path="/result-entry/enter" element={<EnterResultPage />} />
+            <Route path="/result-entry/ready" element={<ReadyResultsPage />} />
+            <Route path="/result-entry/batches" element={<BatchDashboard />} />
+            <Route path="/result-entry/batches/:id" element={<BatchWorkspace />} />
+            <Route path="*" element={<Navigate to="/result-entry/dashboard" replace />} />
+          </Route>
+        </Routes>
+      </ErrorBoundary>
     );
   }
 
@@ -202,7 +233,7 @@ function App() {
               <GlobalSearch onNavigate={(type) => {
                 if (type === 'teams') navigate('/dashboard');
                 else {
-                  const pathMap = { search: '/search', candidates: '/candidates', programmes: '/programmes', registration_review: '/registrations', team_registration_list: '/registration-list', results: '/results', 'pending results': '/pending-results', judgment_feedback: '/judgment-feedback', adjustments: '/point-adjustments', logs: '/activity-logs', gallery: '/gallery', notifications: '/notifications', topic_management: '/topic-management', schedule: '/schedule', jury_slips: '/jury-slips', conflict_checker: '/conflict-checker', users: '/users', settings: '/settings' };
+                  const pathMap = { search: '/search', candidates: '/candidates', programmes: '/programmes', registration_review: '/registrations', team_registration_list: '/registration-list', 'pending results': '/pending-results', judgment_feedback: '/judgment-feedback', adjustments: '/point-adjustments', logs: '/activity-logs', gallery: '/gallery', notifications: '/notifications', topic_management: '/topic-management', schedule: '/schedule', jury_slips: '/jury-slips', conflict_checker: '/conflict-checker', users: '/users', settings: '/settings' };
                   navigate(pathMap[type] || '/dashboard');
                 }
               }} />
@@ -237,26 +268,22 @@ function App() {
             <AnimatePresence mode="wait">
               <ErrorBoundary key={location.pathname}>
                 <Routes location={location}>
-                <Route path="/judge-panel" element={<ProtectedRoute allowedRoles={['admin', 'judge']}><JudgePanel /></ProtectedRoute>} />
                 <Route path="/team-dashboard" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamPortalDashboard /></ProtectedRoute>} />
                 <Route path="/team-programme-registration" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamLeaderDashboard /></ProtectedRoute>} />
                 <Route path="/registration-list" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamRegistrationListPage /></ProtectedRoute>} />
                 <Route path="/team-topic-registration" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><TeamTopicRegistrationPage /></ProtectedRoute>} />
                 <Route path="/candidates" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><CandidatePage /></ProtectedRoute>} />
-                <Route path="/volunteer-portal" element={<ProtectedRoute allowedRoles={['admin', 'volunteer']}><VolunteerPortal /></ProtectedRoute>} />
-                
                 <Route path="/gallery" element={<ProtectedRoute allowedRoles={['admin']}><GalleryPage /></ProtectedRoute>} />
-                <Route path="/notifications" element={<ProtectedRoute allowedRoles={['admin', 'team_leader', 'judge']}><NotificationsPage /></ProtectedRoute>} />
+                <Route path="/notifications" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><NotificationsPage /></ProtectedRoute>} />
                 <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UsersPage /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'team_leader', 'judge', 'volunteer']}><SettingsPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><SettingsPage /></ProtectedRoute>} />
                   <Route path="/search" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><ProgrammeParticipantSearchPage /></ProtectedRoute>} />
                   <Route path="/candidate-status/:id" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><CandidateProgrammeStatusPage /></ProtectedRoute>} />
                 <Route path="/programmes" element={<ProtectedRoute allowedRoles={['admin']}><ProgrammesPage /></ProtectedRoute>} />
                 <Route path="/registrations" element={<ProtectedRoute allowedRoles={['admin']}><RegistrationReviewPage /></ProtectedRoute>} />
-                <Route path="/results" element={<ProtectedRoute allowedRoles={['admin']}><ResultsPage /></ProtectedRoute>} />
+                {/* <Route path="/results" element={<ProtectedRoute allowedRoles={['admin']}><ResultsPage /></ProtectedRoute>} /> */}
                 <Route path="/pending-results" element={<ProtectedRoute allowedRoles={['admin']}><PendingResultsPage /></ProtectedRoute>} />
                 <Route path="/point-adjustments" element={<ProtectedRoute allowedRoles={['admin']}><PointAdjustmentPage /></ProtectedRoute>} />
-                <Route path="/judgment-feedback" element={<ProtectedRoute allowedRoles={['admin']}><JudgmentFeedbackPage /></ProtectedRoute>} />
                 <Route path="/activity-logs" element={<ProtectedRoute allowedRoles={['admin']}><ActivityLogsPage /></ProtectedRoute>} />
                 <Route path="/topic-management" element={<ProtectedRoute allowedRoles={['admin']}><TopicManagementPage /></ProtectedRoute>} />
                 <Route path="/jury-slips" element={<ProtectedRoute allowedRoles={['admin']}><JurySlipsPage /></ProtectedRoute>} />`n                <Route path="/programme-jury-slip" element={<ProtectedRoute allowedRoles={['admin']}><ProgrammeJurySlipPage /></ProtectedRoute>} />
@@ -264,8 +291,8 @@ function App() {
                 <Route path="/schedule" element={<ProtectedRoute allowedRoles={['admin']}><SchedulePage /></ProtectedRoute>} />
                 <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><DashboardPage /></ProtectedRoute>} />
                 
-                <Route path="/" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : userInfo?.role === 'judge' ? '/judge-panel' : userInfo?.role === 'volunteer' ? '/volunteer-portal' : '/dashboard'} replace />} />
-                <Route path="*" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : userInfo?.role === 'judge' ? '/judge-panel' : userInfo?.role === 'volunteer' ? '/volunteer-portal' : '/dashboard'} replace />} />
+                <Route path="/" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : '/dashboard'} replace />} />
+                <Route path="*" element={<Navigate to={userInfo?.role === 'team_leader' ? '/team-dashboard' : '/dashboard'} replace />} />
               </Routes>
               </ErrorBoundary>
             </AnimatePresence>
@@ -288,4 +315,7 @@ function App() {
 }
 
 export default App;
+
+
+
 

@@ -101,8 +101,14 @@ router.get('/my-submissions', protect, async (req, res) => {
 // @access  Private/Admin
 router.delete('/batch/:batchId', protect, authorize('admin'), async (req, res) => {
     try {
-        await Result.deleteMany({ batchId: req.params.batchId, status: 'pending' });
-        res.json({ message: 'Batch deleted' });
+        await Result.updateMany({ batchId: req.params.batchId, status: 'pending' }, { $set: { status: 'draft' } });
+        try {
+            const mongoose = require('mongoose');
+            if (mongoose.models.Batch) {
+                await mongoose.models.Batch.updateOne({ _id: req.params.batchId }, { $set: { status: 'draft' } });
+            }
+        } catch (err) {}
+        res.json({ message: 'Batch rejected and returned to draft status' });
     } catch (error) {
         res.status(500).json({ message: 'Server Error' });
     }

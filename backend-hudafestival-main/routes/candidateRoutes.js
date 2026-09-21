@@ -22,7 +22,7 @@ router.route('/')
 
 router.route('/search').get(searchCandidates);
 
-router.route('/lookup').get(protect, authorize('admin', 'judge', 'team_leader'), lookupCandidates);
+router.route('/lookup').get(protect, authorize('admin', 'team_leader'), lookupCandidates);
 
 
 router.route('/:id')
@@ -34,7 +34,7 @@ router.route('/:id/minus-points').post(protect, addMinusPoints);
 
 router.route('/:id/results').get(getCandidateResults);
 
-router.route('/:id/registrations').get(protect, authorize('admin', 'judge', 'team_leader'), getCandidateRegistrations);
+router.route('/:id/registrations').get(protect, authorize('admin', 'team_leader'), getCandidateRegistrations);
 
 
 module.exports = router;

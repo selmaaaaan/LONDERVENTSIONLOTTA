@@ -38,17 +38,8 @@ const savePendingResults = async (req, res) => {
     }
 };
 
-const approveForProgramme = async (programmeId, user) => {
-    const programme = await Programme.findById(programmeId);
-    if (!programme) throw new Error(`Programme not found: ${programmeId}`);
 
-    const pendingResults = await Result.find({ programme: programmeId, status: 'pending' });
-    if (pendingResults.length === 0) {
-        return { programmeId, success: false, message: 'No pending results to approve.' };
-    }
-    
-    const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
-    
+const calculatePointsForResult = (result, programme, POSITION_POINTS, GRADE_POINTS) => {
     let tier = 'individual';
     if (programme.category === 'KULLIYYAH') {
         tier = 'kulliyyah';
@@ -60,10 +51,25 @@ const approveForProgramme = async (programmeId, user) => {
 
     let gradeTier = programme.isStarred ? 'starred' : 'standard';
 
-    for (const result of pendingResults) {
-        const pointsFromRank = result.rank ? (POSITION_POINTS[tier]?.[result.rank] || 0) : 0;
-        const pointsFromGrade = result.grade ? (GRADE_POINTS[gradeTier]?.[result.grade] || 0) : 0;
-        const totalPoints = pointsFromRank + pointsFromGrade;
+    const pointsFromRank = result.rank ? (POSITION_POINTS[tier]?.[result.rank] || 0) : 0;
+    const pointsFromGrade = result.grade ? (GRADE_POINTS[gradeTier]?.[result.grade] || 0) : 0;
+    
+    return { pointsFromRank, pointsFromGrade, totalPoints: pointsFromRank + pointsFromGrade };
+};
+
+const approveForProgramme = async (programmeId, user) => {
+    const programme = await Programme.findById(programmeId);
+    if (!programme) throw new Error(`Programme not found: ${programmeId}`);
+
+    const pendingResults = await Result.find({ programme: programmeId, status: 'pending' });
+    if (pendingResults.length === 0) {
+        return { programmeId, success: false, message: 'No pending results to approve.' };
+    }
+    
+    const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
+    
+        for (const result of pendingResults) {
+        const { pointsFromRank, pointsFromGrade, totalPoints } = calculatePointsForResult(result, programme, POSITION_POINTS, GRADE_POINTS);
 
         result.pointsFromRank = pointsFromRank;
         result.pointsFromGrade = pointsFromGrade;
@@ -164,7 +170,7 @@ const publishBatch = async (req, res) => {
 // @desc    Get all results for a specific programme
 const getProgrammeResults = async (req, res) => {
     try {
-        const results = await Result.find({ programme: req.params.id });
+        const results = await Result.find({ programme: req.params.id, status: 'approved' });
         res.status(200).json(results);
     } catch (error) {
         res.status(500).json({ message: 'Failed to getProgrammeResults', error: error.message || 'Unknown error' });
@@ -173,7 +179,11 @@ const getProgrammeResults = async (req, res) => {
 
 // @desc    Bulk upsert results as 'pending'
 const savePendingResultsBulk = async (req, res) => {
-    const { results, batchId } = req.body; // Array of { candidateId, rank, grade, remarks }
+    const { results, batchId, isEmergencyOverride } = req.body;
+    
+    if (req.user.role === 'admin' && isEmergencyOverride !== true) {
+        return res.status(403).json({ message: 'Admin score editing requires explicit emergency override flag.' });
+    } // Array of { candidateId, rank, grade, remarks }
     const { id: programmeId } = req.params;
     
     const Programme = require('../models/Programme');
@@ -208,7 +218,18 @@ const savePendingResultsBulk = async (req, res) => {
         if (bulkOps.length > 0) {
             await Result.bulkWrite(bulkOps);
         }
-        await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_SAVED', entityType: 'Result', details: { programmeId, count: results.length, batchId }, req });
+        
+        if (req.user.role === 'admin' && isEmergencyOverride === true) {
+            await logAction({ 
+                actor: req.user._id, actorRole: req.user.role, 
+                action: 'EMERGENCY_SCORE_OVERRIDE', 
+                entityType: 'Programme', entityId: programmeId, 
+                details: { programme: programme.name, count: results.length, batchId, payload: results }, 
+                req 
+            });
+        } else {
+            await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_SAVED', entityType: 'Result', details: { programmeId, count: results.length, batchId }, req });
+        }
         res.status(201).json({ message: 'Results saved as pending in bulk.' });
     } catch (error) {
         res.status(500).json({ message: 'Failed to savePendingResultsBulk', error: error.message || 'Unknown error' });
@@ -313,5 +334,7 @@ const deleteResult = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete result', error: error.message || 'Unknown error' });
     }
 };
-module.exports = { deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+module.exports = { calculatePointsForResult, deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+
+
 

@@ -13,7 +13,7 @@ const getDashboardProgress = async (req, res) => {
         
         const allRegistrations = await Registration.find({ status: { '$in': ['approved', 'pending'] } }).lean();
         const allTopics = await TopicRegistration.find({ status: { '$in': ['approved', 'pending'] } }).lean();
-        const allResults = await Result.find().lean();
+        const allResults = await Result.find({ status: 'approved' }).lean();
 
         // Map programmes by ID for quick lookup
         const progMap = {};

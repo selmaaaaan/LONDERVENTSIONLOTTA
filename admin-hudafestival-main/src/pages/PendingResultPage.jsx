@@ -18,9 +18,10 @@ const PendingResultsPage = () => {
   const fetchPendingData = async () => {
     try {
       setLoading(true);
-      const [progRes, resultsRes] = await Promise.all([api.get('/programmes'), api.get(`/results?page=${currentPage}`)]);
+      const [progRes, resultsRes] = await Promise.all([api.get('/programmes'), api.get('/results')]);
       const allProgrammes = progRes.data;
-      const pendingResults = resultsRes.data.filter(r => r.status === 'pending');
+      const resultsArray = Array.isArray(resultsRes.data) ? resultsRes.data : (resultsRes.data.data || []);
+      const pendingResults = resultsArray.filter(r => r.status === 'pending');
       
       const batchMap = {};
       pendingResults.forEach(r => {

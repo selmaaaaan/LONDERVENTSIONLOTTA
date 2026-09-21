@@ -19,6 +19,7 @@ const auditLogRoutes = require('./routes/auditLogRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const topicRegistrationRoutes = require('./routes/topicRegistrationRoutes');
+const resultEntryRoutes = require('./routes/resultEntryRoutes');
 
 connectDB();
 const app = express();
@@ -67,6 +68,7 @@ app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/topic-registrations', topicRegistrationRoutes);
+app.use('/api/result-entry', resultEntryRoutes);
 const searchRoutes = require('./routes/searchRoutes');
 app.use('/api/search', searchRoutes);
 
@@ -83,3 +85,4 @@ app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 
 })
+

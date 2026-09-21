@@ -263,7 +263,7 @@ const searchCandidates = async (req, res) => {
 // @access  Public
 const getCandidateResults = async (req, res) => {
     try {
-        const results = await Result.find({ candidate: req.params.id })
+        const results = await Result.find({ candidate: req.params.id, status: 'approved' })
             .populate('programme', 'name'); // Get the programme name for each result
 
         res.status(200).json(results);

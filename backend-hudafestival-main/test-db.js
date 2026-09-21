@@ -1,24 +1,43 @@
-const Team = require('./models/Team');
-const Programme = require('./models/Programme');
-const mongoose = require('mongoose');
-const Candidate = require('./models/Candidate');
-const Result = require('./models/Result');
-
 require('dotenv').config();
+const mongoose = require('mongoose');
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(async () => {
-    const candidates = await Candidate.find({ name: /RAZAN/i }).populate('team');
-    console.log("Candidates found:", candidates.length);
-    for (const c of candidates) {
-        console.log(`Candidate: ${c.name}, Category: ${c.category}, Team: ${c.team?.name}, TotalPoints: ${c.totalPoints}`);
-        const results = await Result.find({ candidate: c._id }).populate('programme');
-        console.log(`  Results count: ${results.length}`);
-        for (const r of results) {
-            console.log(`    Programme: ${r.programme?.name}, Status: ${r.status}, Rank: ${r.rank}, Grade: ${r.grade}, TotalPoints: ${r.totalPoints}`);
-        }
+(async () => {
+    try {
+        await mongoose.connect(process.env.MONGO_URI);
+        const Programme = mongoose.connection.collection('programmes');
+        const Result = mongoose.connection.collection('results');
+        const Batch = mongoose.connection.collection('batches');
+
+        const totalProgrammes = await Programme.countDocuments();
+        const scoredGroups = await Result.aggregate([
+            { $group: { _id: "$programme", status: { $first: "$status" }, batchId: { $first: "$batchId" } } }
+        ]).toArray();
+
+        let dbReady = 0, dbInBatch = 0, dbPublished = 0;
+        scoredGroups.forEach(prog => {
+            if (prog.status === 'approved') dbPublished++;
+            else if (prog.batchId) dbInBatch++;
+            else dbReady++;
+        });
+        const dbNotEntered = totalProgrammes - scoredGroups.length;
+
+        const dbDraftBatches = await Batch.countDocuments({ status: 'draft' });
+        const dbSubmittedBatches = await Batch.countDocuments({ status: 'submitted' });
+        const dbPublishedBatches = await Batch.countDocuments({ status: 'published' });
+
+        console.log("=== MANUAL DB CROSS-CHECK ===");
+        console.log(`Programmes Total: ${totalProgrammes}`);
+        console.log(`Programmes Not Entered: ${dbNotEntered}`);
+        console.log(`Programmes Ready: ${dbReady}`);
+        console.log(`Programmes In Batch: ${dbInBatch}`);
+        console.log(`Programmes Published: ${dbPublished}`);
+        console.log(`Batches Draft: ${dbDraftBatches}`);
+        console.log(`Batches Submitted: ${dbSubmittedBatches}`);
+        console.log(`Batches Published: ${dbPublishedBatches}`);
+        
+        process.exit(0);
+    } catch (e) {
+        console.error(e);
+        process.exit(1);
     }
-    process.exit(0);
-  })
-  .catch(err => console.error(err));
-
+})();

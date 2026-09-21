@@ -182,8 +182,6 @@ export default function UsersPage() {
             <label className="block text-sm font-medium text-[var(--color-text-muted)] mb-1">Role</label>
             <select value={userForm.role} onChange={e => setUserForm({...userForm, role: e.target.value})} className="w-full px-3 py-2 bg-[var(--color-surface-elevated)] border border-[var(--color-border)] rounded-lg text-[var(--color-text-heading)] focus:outline-none focus:border-[var(--color-primary)]">
               <option value="admin">Admin</option>
-              <option value="judge">Judge</option>
-              <option value="volunteer">Volunteer</option>
               <option value="team_leader">Team Leader</option>
             </select>
           </div>

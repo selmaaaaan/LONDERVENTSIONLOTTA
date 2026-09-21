@@ -1,0 +1,50 @@
+[
+  {
+    "_id": "6ab054c89d441dbbf92e018a",
+    "name": "Simulated Publish Edit Batch",
+    "programmes": [
+      "6aa53238b505df4ce11fcf53"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-20T21:48:56.810Z",
+    "updatedAt": "2026-09-20T21:48:56.810Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ab054e2a445029e567a9f4f",
+    "name": "Simulated Publish Edit Batch",
+    "programmes": [
+      "6aa53238b505df4ce11fcf53"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-20T21:49:22.135Z",
+    "updatedAt": "2026-09-20T21:49:22.135Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ab054e86a52d360b0c97eed",
+    "name": "Simulated Publish Edit Batch",
+    "programmes": [
+      "6aa53238b505df4ce11fcf53"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-20T21:49:28.490Z",
+    "updatedAt": "2026-09-20T21:49:28.490Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ab054efaa763106cdce2cdd",
+    "name": "Simulated Publish Edit Batch",
+    "programmes": [
+      "6aa53238b505df4ce11fcf53"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-20T21:49:35.065Z",
+    "updatedAt": "2026-09-20T21:49:35.065Z",
+    "__v": 0
+  }
+]

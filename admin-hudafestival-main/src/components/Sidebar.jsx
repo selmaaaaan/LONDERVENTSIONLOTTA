@@ -49,12 +49,7 @@ const Sidebar = ({ onLogout, userInfo }) => {
   }, [userInfo]);
 
   const isTeamLeader = userInfo?.role === 'team_leader';
-  const isJudge = userInfo?.role === 'judge';
-  const isVolunteer = userInfo?.role === 'volunteer';
-
-  const visibleNavItems = isJudge
-    ? [{ key: 'judge_panel', label: 'Judge Panel', icon: Trophy }]
-    : isTeamLeader
+  const visibleNavItems = isTeamLeader
     ? [
         { key: 'team_dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { key: 'candidates', label: 'My Team', icon: Users },
@@ -64,10 +59,7 @@ const Sidebar = ({ onLogout, userInfo }) => {
         { key: 'team_topic_registration', label: 'Topic Registration', icon: BookOpen },
         { key: 'notifications', label: 'Notifications', icon: Bell }
       ]
-    : isVolunteer
-    ? [
-        { key: 'volunteer_portal', label: 'Volunteer Portal', icon: Radio },
-      ]
+    
     : navItems;
 
   return (
@@ -87,7 +79,6 @@ const Sidebar = ({ onLogout, userInfo }) => {
             search: '/search',
             registration_review: '/registrations',
             team_registration_list: '/registration-list',
-            results: '/results',
             'pending results': '/pending-results',
             judgment_feedback: '/judgment-feedback',
             adjustments: '/point-adjustments',
@@ -101,12 +92,10 @@ const Sidebar = ({ onLogout, userInfo }) => {
             conflict_checker: '/conflict-checker',
             users: '/users',
             settings: '/settings',
-            judge_panel: '/judge-panel',
             team_dashboard: '/team-dashboard',
             team_programme_registration: '/team-programme-registration',
             team_topic_registration: '/team-topic-registration',
-            volunteer_portal: '/volunteer-portal',
-          }[key] || '/';
+            }[key] || '/';
           const isActive = location.pathname === path;
           return (
             <Link
@@ -128,7 +117,7 @@ const Sidebar = ({ onLogout, userInfo }) => {
 
       {/* User Profile & Controls */}
       <div className="p-3 border-t border-[var(--color-border)] space-y-2">
-        {/* Profile link — only admin/judge go to /settings; team leaders are NOT allowed */}
+        {/* Profile link ï¿½ only admin/judge go to /settings; team leaders are NOT allowed */}
         {isTeamLeader ? (
           <div className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm cursor-default">
             <div className="w-9 h-9 rounded-full text-white flex items-center justify-center font-bold shrink-0" style={{ backgroundColor: teamColor }}>
@@ -156,4 +145,5 @@ const Sidebar = ({ onLogout, userInfo }) => {
 };
 
 export default Sidebar;
+
 

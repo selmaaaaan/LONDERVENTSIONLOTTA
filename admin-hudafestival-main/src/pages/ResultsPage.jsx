@@ -26,6 +26,7 @@ export default function ResultsPage() {
     // Right panel state
     const [selectedProg, setSelectedProg] = useState(null);
     const [activeTab, setActiveTab] = useState('Results Entry');
+    const [emergencyOverride, setEmergencyOverride] = useState(false);
     const [progLoading, setProgLoading] = useState(false);
 
     // Programme specific data
@@ -81,12 +82,13 @@ export default function ResultsPage() {
         setProgLoading(true);
         setSelectedProg(prog);
         setHasUnsavedChanges(false);
+        setEmergencyOverride(false);
         setActiveTab('Results Entry');
 
         try {
             const [resultsRes, regsRes, codesRes] = await Promise.all([
                 api.get(`/programmes/${prog._id}/results`),
-                api.get(`/registrations?programme=${prog._id}`),
+                api.get(`/registrations?programme=${prog._id}&status=approved`),
                 api.get(`/programmes/${prog._id}/code-letters`).catch(() => ({ data: [] }))
             ]);
 
@@ -438,15 +440,15 @@ export default function ResultsPage() {
                                     </div>
                                     {activeTab === 'Results Entry' && (
                                         <div className="flex items-center gap-3 pb-2">
-                                            <Button variant="ghost" className="text-xs font-semibold" onClick={resetAll} disabled={isPublished}><XCircle size={14} className="mr-1.5" /> Reset All</Button>
-                                            <Button variant="outline" className="text-xs font-semibold" onClick={handleSaveDraft} disabled={isPublished}><Save size={14} className="mr-1.5" /> Save Draft</Button>
+                                            <Button variant="ghost" className="text-xs font-semibold" onClick={resetAll} disabled={isPublished || !emergencyOverride}><XCircle size={14} className="mr-1.5" /> Reset All</Button>
+                                            <Button variant="outline" className="text-xs font-semibold" onClick={handleSaveDraft} disabled={isPublished || !emergencyOverride}><Save size={14} className="mr-1.5" /> Save Draft</Button>
                                             {isPublished && (
                                                 <Button variant="danger" className="text-xs font-semibold" onClick={handleUnpublish}>
                                                     Unlock for Editing
                                                 </Button>
                                             )}
                                             {!isPublished && (
-                                            <Button variant="primary" className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border-none shadow-md shadow-indigo-600/20" onClick={handlePublish} disabled={isPublished}>
+                                            <Button variant="primary" className="text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 border-none shadow-md shadow-indigo-600/20" onClick={handlePublish} disabled={isPublished || !emergencyOverride}>
                                                 <CheckCircle size={14} className="mr-1.5" /> Publish Results
                                             </Button>
                                             )}
@@ -456,7 +458,20 @@ export default function ResultsPage() {
                                 
                                 <div className="flex-1 overflow-y-auto">
                                     {activeTab === 'Results Entry' && (
-                                            <table className="w-full text-left text-sm border-collapse">
+                                        <div className="mx-6 mb-4 mt-2 p-4 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start gap-4">
+                                            <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={20} />
+                                            <div className="flex-1">
+                                                <h3 className="text-red-500 font-bold text-sm mb-1">EMERGENCY OVERRIDE</h3>
+                                                <p className="text-red-500/80 text-xs mb-3">Result entry is locked to the Result Portal. Only use this if the portal is completely unavailable.</p>
+                                                <label className="flex items-center gap-2 text-xs font-semibold text-red-500 cursor-pointer">
+                                                    <input type="checkbox" checked={emergencyOverride} onChange={(e) => setEmergencyOverride(e.target.checked)} className="accent-red-500" />
+                                                    Enable Emergency Score Editing
+                                                </label>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {activeTab === 'Results Entry' && (
+                                        <table className="w-full text-left text-sm border-collapse">
                                                 <thead className="bg-[var(--color-surface-elevated)] sticky top-0 z-10 shadow-sm border-b border-[var(--color-border)]">
                                                     <tr>
                                                         <th className="px-6 py-4 font-bold text-[11px] tracking-wider text-[var(--color-text-muted)] uppercase">#</th>
@@ -496,7 +511,7 @@ export default function ResultsPage() {
                                                                     <div className="flex gap-4">
                                                                         {[1, 2, 3].map(pos => (
                                                                             <label key={pos} className={`flex items-center gap-2 cursor-pointer transition-opacity ${isPublished ? 'opacity-50' : 'hover:opacity-80'}`}>
-                                                                                <input type="radio" name={`rank-${cand._id}`} value={pos} checked={res.rank == pos} onChange={() => handleResultChange(cand._id, 'rank', pos)} disabled={isPublished} className="w-4 h-4 accent-[var(--color-primary)]" />
+                                                                                <input type="radio" name={`rank-${cand._id}`} value={pos} checked={res.rank == pos} onChange={() => handleResultChange(cand._id, 'rank', pos)} disabled={isPublished || !emergencyOverride} className="w-4 h-4 accent-[var(--color-primary)]" />
                                                                                 <span className="text-sm font-bold text-[var(--color-text-heading)]">{pos}</span>
                                                                             </label>
                                                                         ))}
@@ -506,7 +521,7 @@ export default function ResultsPage() {
                                                                     <div className="flex gap-5">
                                                                         {['A', 'B', 'C'].map(grade => (
                                                                             <label key={grade} className={`flex items-center gap-2 cursor-pointer transition-opacity ${isPublished ? 'opacity-50' : 'hover:opacity-80'}`}>
-                                                                                <input type="radio" name={`grade-${cand._id}`} value={grade} checked={res.grade === grade} onChange={() => handleResultChange(cand._id, 'grade', grade)} disabled={isPublished} className="w-4 h-4 accent-[var(--color-primary)]" />
+                                                                                <input type="radio" name={`grade-${cand._id}`} value={grade} checked={res.grade === grade} onChange={() => handleResultChange(cand._id, 'grade', grade)} disabled={isPublished || !emergencyOverride} className="w-4 h-4 accent-[var(--color-primary)]" />
                                                                                 <span className="text-sm font-bold text-[var(--color-text-heading)]">{grade}</span>
                                                                             </label>
                                                                         ))}
@@ -520,13 +535,13 @@ export default function ResultsPage() {
                                                                         type="text" 
                                                                         value={res.remarks} 
                                                                         onChange={(e) => handleResultChange(cand._id, 'remarks', e.target.value)} 
-                                                                        disabled={isPublished}
+                                                                        disabled={isPublished || !emergencyOverride}
                                                                         placeholder="Enter remarks (optional)..." 
                                                                         className="w-full px-4 py-2.5 text-sm bg-[var(--color-surface)] border border-[var(--color-border)] rounded-lg focus:outline-none focus:border-[var(--color-primary)] focus:ring-1 focus:ring-[var(--color-primary)] disabled:opacity-50 transition-shadow"
                                                                     />
                                                                 </td>
                                                                 <td className="px-6 py-5 text-right">
-                                                                    <button onClick={() => clearRow(cand._id)} disabled={isPublished} className="p-2 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg disabled:opacity-50 transition-colors">
+                                                                    <button onClick={() => clearRow(cand._id)} disabled={isPublished || !emergencyOverride} className="p-2 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-lg disabled:opacity-50 transition-colors">
                                                                         <Trash2 size={18} />
                                                                     </button>
                                                                 </td>
@@ -634,14 +649,14 @@ export default function ResultsPage() {
                                 
                                 {activeTab === 'Results Entry' && codeLetters.length > 0 && participants.length > 0 && (
                                     <div className="px-6 py-4 border-t border-[var(--color-border)] flex justify-between items-center bg-[var(--color-surface-elevated)] shadow-[0_-4px_10px_rgba(0,0,0,0.02)]">
-                                        <Button variant="ghost" onClick={resetAll} disabled={isPublished} className="font-semibold text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-heading)]">
+                                        <Button variant="ghost" onClick={resetAll} disabled={isPublished || !emergencyOverride} className="font-semibold text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-heading)]">
                                             <XCircle size={16} className="mr-1.5" /> Clear All Unsaved
                                         </Button>
                                         <div className="flex gap-4">
-                                            <Button variant="outline" onClick={handleSaveDraft} disabled={isPublished} className="font-semibold text-xs px-5">
+                                            <Button variant="outline" onClick={handleSaveDraft} disabled={isPublished || !emergencyOverride} className="font-semibold text-xs px-5">
                                                 <Save size={16} className="mr-1.5" /> Save Draft
                                             </Button>
-                                            <Button variant="primary" className="bg-indigo-600 hover:bg-indigo-700 border-none shadow-md shadow-indigo-600/20 font-semibold text-xs px-6" onClick={handlePublish} disabled={isPublished}>
+                                            <Button variant="primary" className="bg-indigo-600 hover:bg-indigo-700 border-none shadow-md shadow-indigo-600/20 font-semibold text-xs px-6" onClick={handlePublish} disabled={isPublished || !emergencyOverride}>
                                                 <CheckCircle size={16} className="mr-1.5" /> Publish Results
                                             </Button>
                                         </div>
@@ -663,4 +678,5 @@ export default function ResultsPage() {
         </div>
     );
 }
+
 

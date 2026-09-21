@@ -1,0 +1,18 @@
+[
+  {
+    "_id": "6aaf7611a3c27a9f38166d99",
+    "programme": "6aa53238b505df4ce11fcf53",
+    "candidate": "6aa618794c866f4ddd5247e2",
+    "rank": 1,
+    "grade": "A",
+    "batchId": "6ab054efaa763106cdce2cdd",
+    "status": "approved",
+    "submittedBy": null,
+    "pointsFromRank": 5,
+    "pointsFromGrade": 5,
+    "totalPoints": 10,
+    "createdAt": "2026-09-20T05:58:41.025Z",
+    "updatedAt": "2026-09-20T22:03:19.253Z",
+    "__v": 0
+  }
+]

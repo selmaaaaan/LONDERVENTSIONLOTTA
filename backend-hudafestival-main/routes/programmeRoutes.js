@@ -10,8 +10,6 @@ const { protect, authorize } = require('../middlewares/authMiddleware.js');
 const resultRouter = require('./resultRoutes.js');
 
 // --- Main Programme Routes ---
-router.get('/code/:code/judging', protect, getProgrammeByCodeForJudging);
-
 router.route('/')
   .get(getAllProgrammes)
   .post(protect, authorize('admin'), createProgramme);
@@ -37,14 +35,12 @@ router.route('/:id')
 
 router.patch('/:id/topic-settings', protect, authorize('admin'), updateTopicSettings);
 router.patch('/:id/schedule',       protect, authorize('admin'), updateProgrammeSchedule);
-router.patch('/:id/status',         protect, authorize('admin', 'volunteer'), updateProgrammeStatus);
+router.patch('/:id/status',         protect, authorize('admin'), updateProgrammeStatus);
 
 // --- Code Letter Routes (admin | volunteer) ---
 const { bulkAssignCodeLetters, getCodeLetters } = require('../controllers/codeLetterController.js');
-router.get( '/:id/code-letters',  protect, authorize('admin', 'volunteer'), getCodeLetters);
-router.post('/:id/code-letters',  protect, authorize('admin', 'volunteer'), bulkAssignCodeLetters);
-
-// --- Blind Judging Route (judge | admin) ---
-router.get('/:id/candidates-for-judging', protect, authorize('judge', 'admin'), getCandidatesForBlindJudging);
+router.get( '/:id/code-letters',  protect, authorize('admin'), getCodeLetters);
+router.post('/:id/code-letters',  protect, authorize('admin'), bulkAssignCodeLetters);
 
 module.exports = router;
+

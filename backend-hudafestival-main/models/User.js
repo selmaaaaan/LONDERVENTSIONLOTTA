@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     },
     role: {
         type: String,
-        enum: ['admin', 'judge', 'volunteer', 'team_leader'],
+        enum: ['admin', 'team_leader', 'result_entry'],
         default: 'admin'
     },
     isActive: {
@@ -42,3 +42,4 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 const User = mongoose.model('User', userSchema);
 module.exports = User;
+

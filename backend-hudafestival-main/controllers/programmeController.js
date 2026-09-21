@@ -202,24 +202,6 @@ const deleteProgramme = async (req, res) => {
 
 
 const Registration = require('../models/Registration');
-const getProgrammeByCodeForJudging = async (req, res) => {
-    try {
-        const { code } = req.params;
-        const programme = await Programme.findOne({ code });
-        if (!programme) {
-            return res.status(404).json({ message: 'Programme not found' });
-        }
-
-        const registrations = await Registration.find({ programme: programme._id, status: 'approved' })
-            .populate('candidates', 'name admissionNo')
-            .populate('team', 'name');
-
-        res.status(200).json({ programme, registrations });
-    } catch (error) {
-        console.error('Error in getProgrammeByCodeForJudging:', error);
-        res.status(500).json({ message: 'Failed to fetch programme for judging', error: error.message });
-    }
-};
 
 const updateTopicSettings = async (req, res) => {
     try {
@@ -284,59 +266,8 @@ const updateProgrammeStatus = async (req, res) => {
 // @route GET /api/programmes/:id/candidates-for-judging
 // @access Private (judge | admin)
 const CodeLetter = require('../models/CodeLetter');
-const getCandidatesForBlindJudging = async (req, res) => {
-    try {
-        const { id: programmeId } = req.params;
-        const programme = await Programme.findById(programmeId).select('name code category conceptNote isStarred format type');
-        if (!programme) {
-            return res.status(404).json({ message: 'Programme not found' });
-        }
-
-        // Check code letters assigned
-        const codeLetters = await CodeLetter.find({ programme: programmeId }).select('letter _id');
-        if (codeLetters.length === 0) {
-            return res.status(400).json({
-                message: 'Code letters not yet assigned — ask a volunteer to assign them first',
-                noCodeLetters: true
-            });
-        }
-
-        // Check if already judged (pending or approved results exist)
-        const existingResultCount = await Result.countDocuments({ programme: programmeId });
-        const alreadyJudged = existingResultCount > 0;
-
-        // Return only { _id (of CodeLetter doc), letter } — NO candidate name
-        const blindCandidates = codeLetters.map(cl => ({
-            codeLetterId: cl._id,
-            letter: cl.letter
-        }));
-
-        // Sort alphabetically by letter
-        blindCandidates.sort((a, b) => a.letter.localeCompare(b.letter));
-
-        res.status(200).json({
-            programme: {
-                _id: programme._id,
-                name: programme.name,
-                code: programme.code,
-                category: programme.category,
-                conceptNote: programme.conceptNote,
-                isStarred: programme.isStarred,
-                format: programme.format,
-                type: programme.type
-            },
-            candidates: blindCandidates,
-            alreadyJudged
-        });
-    } catch (error) {
-        console.error('Error in getCandidatesForBlindJudging:', error);
-        res.status(500).json({ message: 'Failed to fetch candidates for judging', error: error.message });
-    }
-};
 
 module.exports = {
-    getProgrammeByCodeForJudging,
-    getCandidatesForBlindJudging,
     createProgramme,
     getAllProgrammes,
     getProgrammeById,
