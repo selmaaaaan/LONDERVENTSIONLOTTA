@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../../services/api';
 import Logo from '../../components/Logo';
+import { Trophy, Medal, Award, Crown } from 'lucide-react';
 
 export default function BatchPrintView() {
     const { id } = useParams();
@@ -81,67 +82,110 @@ export default function BatchPrintView() {
                 })}
             </div>
 
-            <div className="!text-black break-before-page">
-                <div className="!text-black text-center mb-8 border-b-2 border-black pb-4">
-                    <h2 className="!text-black text-2xl font-black uppercase tracking-widest !text-black">Cumulative Projections</h2>
-                    <div className="!text-black text-xs mt-1 text-gray-500">Calculated inclusive of this batch</div>
+            <div className="!text-black break-before-page pt-8">
+                <div className="flex items-center justify-between bg-[var(--color-primary)] rounded-xl p-6 mb-10" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: 'var(--color-primary)' }}>
+                    <div>
+                        <h2 className="text-white text-2xl font-black uppercase tracking-widest" style={{ color: '#ffffff' }}>Cumulative Projections</h2>
+                        <div className="text-white/90 text-xs mt-1 font-medium" style={{ color: '#f8fafc' }}>Calculated inclusive of this batch</div>
+                    </div>
+                    <Trophy className="text-white opacity-90" size={40} strokeWidth={1.5} style={{ color: '#ffffff' }} />
                 </div>
 
                 <div className="!text-black grid grid-cols-2 gap-12">
                     <div>
-                        <h3 className="!text-black text-lg font-bold uppercase mb-4 bg-gray-200 p-2 text-center !text-black">Team Leaderboard</h3>
-                        <table className="!text-black w-full text-sm">
-                            <tbody>
-                                {leaderboard.map((team, idx) => (
-                                    <tr key={team.teamId} className="!text-black border-b border-gray-200">
-                                        <td className="!text-black py-2 font-bold w-12">#{idx + 1}</td>
-                                        <td className="!text-black py-2">{team.teamName}</td>
-                                        <td className="!text-black py-2 font-bold text-right">{team.points} pts</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="flex items-center gap-2 mb-4 border-b-2 border-gray-200 pb-2">
+                            <Trophy className="text-[var(--color-primary)]" size={20} style={{ color: 'var(--color-primary)' }} />
+                            <h3 className="text-lg font-black uppercase !text-black">Team Leaderboard</h3>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                            {leaderboard.map((team, idx) => {
+                                let rankBg = "bg-gray-50";
+                                let rankBorder = "border-gray-200";
+                                let rankText = "text-gray-600";
+                                let bgHex = "#f9fafb";
+                                let borderHex = "#e5e7eb";
+                                let textHex = "#4b5563";
+                                
+                                if (idx === 0) { rankBg = "bg-amber-50"; rankBorder = "border-amber-300"; rankText = "text-amber-700"; bgHex = "#fffbeb"; borderHex = "#fcd34d"; textHex = "#b45309"; }
+                                else if (idx === 1) { rankBg = "bg-slate-50"; rankBorder = "border-slate-300"; rankText = "text-slate-700"; bgHex = "#f8fafc"; borderHex = "#cbd5e1"; textHex = "#334155"; }
+                                else if (idx === 2) { rankBg = "bg-orange-50"; rankBorder = "border-orange-300"; rankText = "text-orange-800"; bgHex = "#fff7ed"; borderHex = "#fdba74"; textHex = "#9a3412"; }
+
+                                return (
+                                    <div key={team.teamId} className={`flex items-center justify-between p-3 rounded-xl border-2 ${rankBorder} ${rankBg}`} style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: bgHex, borderColor: borderHex }}>
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black bg-white shadow-sm border ${rankBorder} ${rankText}`} style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: '#ffffff', borderColor: borderHex, color: textHex }}>
+                                                {idx + 1}
+                                            </div>
+                                            <span className="font-black text-sm uppercase !text-black tracking-wide">{team.teamName}</span>
+                                        </div>
+                                        <div className="font-black text-lg !text-black">{team.points} <span className="text-[10px] font-bold text-gray-500">PTS</span></div>
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
 
-                    <div className="!text-black space-y-8">
+                    <div className="!text-black space-y-10">
                         <div>
-                            <h3 className="!text-black text-lg font-bold uppercase mb-4 bg-gray-200 p-2 text-center !text-black">Overall Top 3</h3>
-                            <table className="!text-black w-full text-sm">
-                                <tbody>
-                                    {overallToppers.map((ind, idx) => (
-                                        <tr key={ind.candidateId} className="!text-black border-b border-gray-200">
-                                            <td className="!text-black py-2 font-bold w-12">#{idx + 1}</td>
-                                            <td className="!text-black py-2">
-                                                <div className="!text-black font-bold">{ind.name}</div>
-                                                <div className="!text-black text-xs text-gray-500">{ind.teamName}</div>
-                                            </td>
-                                            <td className="!text-black py-2 font-bold text-right">{ind.points} pts</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <div className="flex items-center gap-2 mb-4 border-b-2 border-gray-200 pb-2">
+                                <Medal className="text-[var(--color-primary)]" size={20} style={{ color: 'var(--color-primary)' }} />
+                                <h3 className="text-lg font-black uppercase !text-black">Overall Top 3</h3>
+                            </div>
+                            <div className="grid grid-cols-1 gap-3">
+                                {overallToppers.map((ind, idx) => {
+                                    let RankIcon = Medal;
+                                    let iconColor = "text-gray-400";
+                                    let iconHex = "#9ca3af";
+                                    if (idx === 0) { RankIcon = Trophy; iconColor = "text-amber-500"; iconHex = "#f59e0b"; }
+                                    else if (idx === 1) { iconColor = "text-slate-400"; iconHex = "#94a3b8"; }
+                                    else if (idx === 2) { iconColor = "text-orange-500"; iconHex = "#f97316"; }
+
+                                    return (
+                                        <div key={ind.candidateId} className="flex items-center p-3 border-2 border-gray-100 bg-gray-50 rounded-xl gap-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: '#f9fafb', borderColor: '#f3f4f6' }}>
+                                            <div className={`flex-shrink-0 ${iconColor}`} style={{ color: iconHex }}>
+                                                <RankIcon size={28} strokeWidth={2.5} />
+                                            </div>
+                                            <div className="flex-grow">
+                                                <div className="font-black uppercase !text-black text-sm tracking-tight">{ind.name}</div>
+                                                <div className="text-[10px] !text-gray-500 font-bold mt-0.5 uppercase">{ind.teamName}</div>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="font-black !text-black text-base">{ind.points} <span className="text-[10px] text-gray-500">PTS</span></div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div>
-                            <h3 className="!text-black text-lg font-bold uppercase mb-4 bg-gray-200 p-2 text-center !text-black">Category Champions</h3>
-                            <table className="!text-black w-full text-sm">
-                                <tbody>
-                                    {Object.entries(categoryToppers).map(([category, winners]) => (
-                                        <tr key={category} className="!text-black border-b border-gray-200">
-                                            <td className="!text-black py-2 font-bold">{category}</td>
-                                            <td className="!text-black py-2">
-                                                {winners.length > 0 ? (
-                                                    <div>
-                                                        <div className="!text-black font-bold">{winners[0].name}</div>
-                                                        <div className="!text-black text-xs text-gray-500">{winners[0].teamName}</div>
-                                                    </div>
-                                                ) : <div className="!text-black text-gray-400 italic">None</div>}
-                                            </td>
-                                            <td className="!text-black py-2 font-bold text-right">{winners.length > 0 ? `${winners[0].points} pts` : '-'}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                            <div className="flex items-center gap-2 mb-4 border-b-2 border-gray-200 pb-2">
+                                <Crown className="text-[var(--color-primary)]" size={20} style={{ color: 'var(--color-primary)' }} />
+                                <h3 className="text-lg font-black uppercase !text-black">Category Champions</h3>
+                            </div>
+                            <div className="flex flex-col gap-3">
+                                {Object.entries(categoryToppers).map(([category, winners]) => (
+                                    <div key={category} className="flex items-center p-3 border-2 border-pink-100 bg-pink-50 rounded-xl gap-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: '#fdf2f8', borderColor: '#fce7f3' }}>
+                                        <div className="flex-shrink-0 text-[var(--color-primary)]" style={{ color: 'var(--color-primary)' }}>
+                                            <Award size={24} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="w-24 font-black uppercase text-[10px] tracking-wider !text-black leading-tight">{category}</div>
+                                        <div className="flex-grow border-l-2 pl-3 border-pink-200" style={{ borderColor: '#fbcfe8' }}>
+                                            {winners.length > 0 ? (
+                                                <div>
+                                                    <div className="font-black !text-black text-xs uppercase">{winners[0].name}</div>
+                                                    <div className="text-[10px] !text-gray-500 font-bold mt-0.5 uppercase">{winners[0].teamName}</div>
+                                                </div>
+                                            ) : <div className="!text-gray-400 italic text-xs">None</div>}
+                                        </div>
+                                        {winners.length > 0 && (
+                                            <div className="text-right font-black !text-black text-sm whitespace-nowrap">
+                                                {winners[0].points} <span className="text-[10px] text-gray-500">PTS</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
