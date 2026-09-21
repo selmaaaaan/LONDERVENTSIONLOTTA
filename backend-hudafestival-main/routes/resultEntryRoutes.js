@@ -514,7 +514,7 @@ router.put('/batches/:id/detach', async (req, res) => {
     }
 });
 
-// @desc    Get a specific Batch & CUMULATIVE leaderboard
+// @desc    Get a specific Batch & REALITY cumulative leaderboard (for PDF)
 router.get('/batches/:id', async (req, res) => {
     try {
         const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id })
@@ -522,33 +522,25 @@ router.get('/batches/:id', async (req, res) => {
             
         if (!batch) return res.status(404).json({ message: 'Batch not found' });
         
-        // Fetch ALL published results PLUS this batch's current results
-        const results = await Result.find({
-            $or: [
-                { status: 'approved' },
-                { batchId: batch._id }
-            ]
-        }).populate({
-            path: 'candidate',
-            populate: { path: 'team' }
-        }).populate('programme');
-        
+        // Fetch ALL approved results for the reality leaderboard (what the PDF should show)
+        const approvedResults = await Result.find({ status: 'approved' })
+            .populate({
+                path: 'candidate',
+                populate: { path: 'team' }
+            }).populate('programme');
+            
         const teamPoints = {};
         const candidatePoints = {};
         
-        results.forEach(r => {
+        approvedResults.forEach(r => {
             if (!r.candidate || !r.programme) return;
             const c = r.candidate;
             
-            // Exclude non-scoring or unranked
             if (r.totalPoints > 0) {
-                // Team Aggregation
                 if (c.team) {
                     const tId = c.team._id.toString();
                     teamPoints[tId] = (teamPoints[tId] || 0) + r.totalPoints;
                 }
-                
-                // Individual Aggregation
                 const cId = c._id.toString();
                 if (!candidatePoints[cId]) {
                     candidatePoints[cId] = {
@@ -563,7 +555,6 @@ router.get('/batches/:id', async (req, res) => {
             }
         });
 
-        // 1. Team Leaderboard
         const teams = await Team.find({});
         const teamMap = {};
         teams.forEach(t => teamMap[t._id.toString()] = t.name);
@@ -574,40 +565,34 @@ router.get('/batches/:id', async (req, res) => {
             points: teamPoints[tId]
         })).sort((a,b) => b.points - a.points);
 
-        // 2. Overall Top 3 Individuals
         const allCandidatesArr = Object.values(candidatePoints).sort((a,b) => b.points - a.points);
         const overallToppers = allCandidatesArr.slice(0, 3);
 
-        // 3. Category Toppers (Top 1 per category)
         const categoryToppers = {};
         allCandidatesArr.forEach(c => {
-            if (!categoryToppers[c.category]) {
-                categoryToppers[c.category] = [];
-            }
-            // Add top 3 per category for flexibility
-            if (categoryToppers[c.category].length < 3) {
-                categoryToppers[c.category].push(c);
-            }
+            if (!categoryToppers[c.category]) categoryToppers[c.category] = [];
+            if (categoryToppers[c.category].length < 3) categoryToppers[c.category].push(c);
         });
 
-        // Also fetch candidate-specific results mapped for the batch's programmes so the PDF has full details
-        // We only want the details of results belonging to THIS batch for the programme printouts
-        const batchResults = results.filter(r => r.batchId && r.batchId.toString() === batch._id.toString());
+        // Fetch this batch's results specifically for the batch details
+        const batchResults = await Result.find({ batchId: batch._id })
+            .populate({
+                path: 'candidate',
+                populate: { path: 'team' }
+            }).populate('programme');
 
-        // Compute previousTotal for each candidate: sum of approved points from results NOT in this batch
-        const batchProgrammeIds = new Set(batch.programmes.map(p => p._id.toString()));
+        // Compute previousTotal for each candidate: sum of approved points from results NOT in this batch's programmes
+        const batchProgrammeIds = new Set(batch.programmes.map(p => p._id ? p._id.toString() : p.toString()));
         const previousTotals = {};
 
-        results.forEach(r => {
+        approvedResults.forEach(r => {
             if (!r.candidate) return;
             const cId = r.candidate._id.toString();
-            // Only count approved results that are NOT in this batch's programmes
-            if (r.status === 'approved' && r.programme && !batchProgrammeIds.has(r.programme._id.toString())) {
+            if (r.programme && !batchProgrammeIds.has(r.programme._id.toString())) {
                 previousTotals[cId] = (previousTotals[cId] || 0) + (r.totalPoints || 0);
             }
         });
 
-        // Enrich batchResults with previousTotal and grandTotal
         const enrichedBatchResults = batchResults.map(r => {
             const rObj = r.toObject ? r.toObject() : { ...r };
             const cId = r.candidate ? r.candidate._id.toString() : null;
@@ -625,6 +610,74 @@ router.get('/batches/:id', async (req, res) => {
             batchResults: enrichedBatchResults,
             resultsCount: enrichedBatchResults.length 
         });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// @desc    Get CUMULATIVE projection for a batch (approved results + this batch's current unapproved results)
+router.get('/batches/:id/projection', async (req, res) => {
+    try {
+        const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id });
+        if (!batch) return res.status(404).json({ message: 'Batch not found' });
+        
+        // Find approved results NOT in this batch, plus ALL results in this batch
+        const projectionResults = await Result.find({
+            $or: [
+                { status: 'approved', batchId: { $ne: batch._id } },
+                { batchId: batch._id }
+            ]
+        }).populate({
+            path: 'candidate',
+            populate: { path: 'team' }
+        });
+        
+        const teamPoints = {};
+        const candidatePoints = {};
+        
+        projectionResults.forEach(r => {
+            if (!r.candidate) return;
+            const c = r.candidate;
+            if (r.totalPoints > 0) {
+                if (c.team) {
+                    const tId = c.team._id.toString();
+                    teamPoints[tId] = (teamPoints[tId] || 0) + r.totalPoints;
+                }
+                const cId = c._id.toString();
+                if (!candidatePoints[cId]) {
+                    candidatePoints[cId] = {
+                        candidateId: cId,
+                        name: c.name,
+                        teamName: c.team ? c.team.name : 'Unknown',
+                        category: c.category,
+                        points: 0
+                    };
+                }
+                candidatePoints[cId].points += r.totalPoints;
+            }
+        });
+
+        const teams = await Team.find({});
+        const teamMap = {};
+        teams.forEach(t => teamMap[t._id.toString()] = t.name);
+
+        const leaderboard = Object.keys(teamPoints).map(tId => ({
+            teamId: tId,
+            teamName: teamMap[tId] || 'Unknown',
+            points: teamPoints[tId]
+        })).sort((a,b) => b.points - a.points);
+
+        const allCandidatesArr = Object.values(candidatePoints).sort((a,b) => b.points - a.points);
+        const overallToppers = allCandidatesArr.slice(0, 3);
+
+        const categoryToppers = {};
+        allCandidatesArr.forEach(c => {
+            if (!categoryToppers[c.category]) categoryToppers[c.category] = [];
+            if (categoryToppers[c.category].length < 3) categoryToppers[c.category].push(c);
+        });
+
+        res.json({ leaderboard, overallToppers, categoryToppers });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

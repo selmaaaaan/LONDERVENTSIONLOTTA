@@ -24,9 +24,6 @@ export default function BatchWorkspace() {
         try {
             const res = await api.get(`/result-entry/batches/${id}`);
             setBatch(res.data.batch);
-            setLeaderboard(res.data.leaderboard || []);
-            setOverallToppers(res.data.overallToppers || []);
-            setCategoryToppers(res.data.categoryToppers || {});
             setBatchResults(res.data.batchResults || []);
         } catch (err) {
             showToast('Failed to load batch data', 'error');
@@ -34,8 +31,20 @@ export default function BatchWorkspace() {
         }
     };
 
+    const fetchProjection = async () => {
+        try {
+            const res = await api.get(`/result-entry/batches/${id}/projection`);
+            setLeaderboard(res.data.leaderboard || []);
+            setOverallToppers(res.data.overallToppers || []);
+            setCategoryToppers(res.data.categoryToppers || {});
+        } catch (err) {
+            console.error('Failed to load projection', err);
+        }
+    };
+
     useEffect(() => {
         fetchBatchData();
+        fetchProjection();
     }, [id]);
 
     const openAddModal = async () => {
@@ -57,6 +66,7 @@ export default function BatchWorkspace() {
             });
             setShowAddModal(false);
             fetchBatchData();
+            fetchProjection();
         } catch (err) {
             showToast('Failed to attach programmes', 'error');
         }
@@ -78,6 +88,7 @@ export default function BatchWorkspace() {
                     await api.delete(`/result-entry/standalone-results/${progId}`);
                     showToast('Result deleted completely', 'success');
                     fetchBatchData();
+                    fetchProjection();
                 } catch (err) {
                     showToast('Failed to delete result', 'error');
                 }
@@ -97,6 +108,7 @@ export default function BatchWorkspace() {
                         programmeId: progId
                     });
                     fetchBatchData();
+                    fetchProjection();
                     showToast('Programme removed', 'success');
                 } catch (err) {
                     showToast('Failed to detach programme', 'error');
@@ -115,7 +127,8 @@ export default function BatchWorkspace() {
                 try {
                     await api.put(`/result-entry/batches/${id}/recall`);
                     showToast('Batch recalled successfully!', 'success');
-                    fetchBatch();
+                    fetchBatchData();
+                    fetchProjection();
                 } catch (err) {
                     showToast(err.response?.data?.message || 'Error recalling batch', 'error');
                 }
@@ -387,6 +400,7 @@ export default function BatchWorkspace() {
                         onSaved={() => {
                             setEditingProgramme(null);
                             fetchBatchData(); // Refresh UI instantly
+                            fetchProjection();
                         }}
                     />
                 </div>
