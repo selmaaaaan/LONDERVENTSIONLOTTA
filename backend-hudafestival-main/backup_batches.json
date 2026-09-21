@@ -1,0 +1,62 @@
+[
+  {
+    "_id": "6ab0feb281e5d3fe0879e7cf",
+    "name": "hb",
+    "programmes": [
+      "6aa53238b505df4ce11fcf55"
+    ],
+    "status": "published",
+    "createdBy": "6ab05e122120458b3b121f89",
+    "createdAt": "2026-09-21T09:53:54.868Z",
+    "updatedAt": "2026-09-21T09:55:40.470Z",
+    "__v": 1
+  },
+  {
+    "_id": "6ab0fee481e5d3fe0879e845",
+    "name": "m",
+    "programmes": [
+      "6aa579fab3a578bb93511460"
+    ],
+    "status": "published",
+    "createdBy": "6ab05e122120458b3b121f89",
+    "createdAt": "2026-09-21T09:54:44.860Z",
+    "updatedAt": "2026-09-21T09:55:42.986Z",
+    "__v": 1
+  },
+  {
+    "_id": "6ab1054184ade1d48683b523",
+    "name": "Test Published Batch",
+    "programmes": [
+      "6ab1054084ade1d48683b51f"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-21T10:21:53.043Z",
+    "updatedAt": "2026-09-21T10:21:53.043Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ab1056fd30b1c58b8096bef",
+    "name": "Test Published Batch",
+    "programmes": [
+      "6ab1056fd30b1c58b8096beb"
+    ],
+    "status": "published",
+    "createdBy": "6a9d4307974e15c28d174872",
+    "createdAt": "2026-09-21T10:22:39.974Z",
+    "updatedAt": "2026-09-21T10:22:39.974Z",
+    "__v": 0
+  },
+  {
+    "_id": "6ab1058fb223d64d0f5d62e2",
+    "name": "Test Published Batch",
+    "programmes": [
+      "6ab1058eb223d64d0f5d62de"
+    ],
+    "status": "published",
+    "createdBy": "6ab05e122120458b3b121f89",
+    "createdAt": "2026-09-21T10:23:11.081Z",
+    "updatedAt": "2026-09-21T10:23:11.081Z",
+    "__v": 0
+  }
+]
