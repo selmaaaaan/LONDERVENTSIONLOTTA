@@ -43,6 +43,7 @@ import EnterResultPage from './pages/result-entry/EnterResultPage';
 import ReadyResultsPage from './pages/result-entry/ReadyResultsPage';
 import BatchDashboard from './pages/result-entry/BatchDashboard';
 import BatchWorkspace from './pages/result-entry/BatchWorkspace';
+import AllResultsPage from './pages/result-entry/AllResultsPage';
 import BatchPrintView from './pages/result-entry/BatchPrintView';
 
 
@@ -198,6 +199,7 @@ function App() {
               <Route path="/result-entry/enter" element={<EnterResultPage />} />
             <Route path="/result-entry/ready" element={<ReadyResultsPage />} />
             <Route path="/result-entry/batches" element={<BatchDashboard />} />
+              <Route path="/result-entry/all" element={<AllResultsPage />} />
             <Route path="/result-entry/batches/:id" element={<BatchWorkspace />} />
             <Route path="*" element={<Navigate to="/result-entry/dashboard" replace />} />
           </Route>

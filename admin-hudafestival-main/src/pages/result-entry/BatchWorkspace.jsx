@@ -105,7 +105,26 @@ export default function BatchWorkspace() {
         });
     };
 
+
+        const handleRecall = () => {
+        showModal({
+            title: 'Recall Batch',
+            message: "Recall this batch from Admin? It will be pulled back to Draft status here and removed from Admin's Pending Results list until you resubmit it.",
+            confirmText: 'Recall',
+            onConfirm: async () => {
+                try {
+                    await api.put(`/result-entry/batches/${id}/recall`);
+                    showToast('Batch recalled successfully!', 'success');
+                    fetchBatch();
+                } catch (err) {
+                    showToast(err.response?.data?.message || 'Error recalling batch', 'error');
+                }
+            }
+        });
+    };
+
         const handleSubmitToAdmin = () => {
+
         showModal({
             title: 'Submit Batch',
             message: 'Are you sure you want to submit this batch to Admin? It will be locked for editing.',

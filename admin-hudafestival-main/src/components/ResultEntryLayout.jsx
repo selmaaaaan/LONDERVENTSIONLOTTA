@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LogOut, PenTool, CheckSquare, Layers, LayoutDashboard, Sun, Moon } from 'lucide-react';
+import { LogOut, PenTool, CheckSquare, Layers, LayoutDashboard, Sun, Moon, Database } from 'lucide-react';
 import Logo from '../components/Logo';
 import { ResultEntryProvider } from '../context/ResultEntryUIContext';
 
@@ -66,10 +66,16 @@ export default function ResultEntryLayout() {
                             <CheckSquare size={18} className="mr-3" />
                             Ready Results
                         </NavLink>
+
                         <NavLink to="/result-entry/batches" className={navLinkClass}>
                             <Layers size={18} className="mr-3" />
                             Batches
                         </NavLink>
+                        <NavLink to="/result-entry/all" className={navLinkClass}>
+                            <Database size={18} className="mr-3" />
+                            All Results
+                        </NavLink>
+
                     </nav>
 
                     <div className="p-4 border-t border-[var(--color-border)] space-y-2">

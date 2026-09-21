@@ -1,87 +1,96 @@
 const fs = require('fs');
 let code = fs.readFileSync('routes/resultEntryRoutes.js', 'utf8');
 
-// Fix logAction import
-code = code.replace(
-    "const { logAction } = require('../middlewares/logMiddleware');",
-    "const { logAction } = require('../utils/logAction');"
-);
-
-// We need to make sure logAction is imported at the top of the file if not already.
-if (!code.includes("const { logAction } = require('../utils/logAction');")) {
-    code = code.replace(
-        "const mongoose = require('mongoose');",
-        "const mongoose = require('mongoose');\nconst { logAction } = require('../utils/logAction');"
-    );
-}
-
-// Replace the delete standalone results route
-const oldDeleteRoute = `router.delete('/standalone-results/:programmeId', async (req, res) => {
+const pipelineEndpoint = `
+// @desc    Get pipeline status for all programmes
+// @route   GET /api/result-entry/programmes-pipeline
+router.get('/programmes-pipeline', async (req, res) => {
     try {
-        await Result.deleteMany({ 
-            programme: req.params.programmeId, 
-            status: 'draft', 
-            batchId: null 
-        });
-        res.json({ message: 'Results cleared.' });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error' });
-    }
-});`;
-
-const newDeleteRoute = `router.delete('/standalone-results/:programmeId', async (req, res) => {
-    try {
-        const programmeId = req.params.programmeId;
-        const results = await Result.find({ programme: programmeId });
-        
-        if (!results.length) {
-            return res.json({ message: 'No results to clear.' });
-        }
-
-        let hasApproved = false;
-
-        // Cascade delete loop
-        for (const result of results) {
-            if (result.status === 'approved' && result.totalPoints > 0) {
-                hasApproved = true;
-                await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -result.totalPoints } });
-                const candidate = await Candidate.findById(result.candidate);
-                if (candidate && candidate.team) {
-                    await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -result.totalPoints } });
+        const programmes = await Programme.find().lean();
+        const results = await Result.aggregate([
+            {
+                $group: {
+                    _id: "$programme",
+                    status: { $first: "$status" },
+                    batchId: { $first: "$batchId" }
                 }
             }
-            await result.deleteOne();
+        ]);
+        
+        let batchMap = {};
+        if (results.length > 0) {
+            const batchIds = results.filter(r => r.batchId).map(r => r.batchId);
+            const batches = await Batch.find({ _id: { $in: batchIds } }).lean();
+            batchMap = batches.reduce((acc, b) => {
+                acc[b._id.toString()] = b.status;
+                return acc;
+            }, {});
         }
 
-        // Unlink from any batch
-        await Batch.updateMany(
-            { programmes: programmeId },
-            { $pull: { programmes: programmeId } }
-        );
+        const resultMap = results.reduce((acc, r) => {
+            let pStatus = 'ready';
+            if (r.status === 'approved') pStatus = 'published';
+            else if (r.batchId) {
+                const bStat = batchMap[r.batchId.toString()];
+                if (bStat === 'draft') pStatus = 'in_batch';
+                else if (bStat === 'submitted') pStatus = 'submitted';
+                else if (bStat === 'published') pStatus = 'published';
+                else pStatus = 'in_batch'; // fallback
+            }
+            acc[r._id.toString()] = { pipelineStatus: pStatus, batchId: r.batchId };
+            return acc;
+        }, {});
 
-        // Reset Programme status if it was published
-        if (hasApproved) {
-            await Programme.updateOne({ _id: programmeId }, { $set: { isResultPublished: false } });
-        }
-
-        // Log action
-        await logAction({
-            actor: req.user._id,
-            actorRole: req.user.role,
-            action: 'RESULT_DELETED_FROM_PORTAL',
-            entityType: 'Programme',
-            entityId: programmeId,
-            req
+        const pipeline = programmes.map(p => {
+            const rData = resultMap[p._id.toString()] || { pipelineStatus: 'not_entered', batchId: null };
+            return {
+                _id: p._id,
+                name: p.name,
+                code: p.code,
+                category: p.category,
+                pipelineStatus: rData.pipelineStatus,
+                batchId: rData.batchId
+            };
         });
 
-        res.json({ message: 'Results cleared successfully.' });
+        res.json(pipeline);
     } catch (error) {
-        console.error('Error clearing results:', error);
-        res.status(500).json({ message: 'Server error', error: error.message });
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
     }
-});`;
+});
+`;
 
-code = code.replace(oldDeleteRoute, newDeleteRoute);
+const recallEndpoint = `
+// @desc    Recall a submitted batch
+// @route   PUT /api/result-entry/batches/:id/recall
+router.put('/batches/:id/recall', async (req, res) => {
+    try {
+        const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id, status: 'submitted' });
+        if (!batch) return res.status(404).json({ message: 'Batch not found or not recallable' });
+        
+        await Result.updateMany({ batchId: batch._id, status: 'pending' }, { $set: { status: 'draft' } });
+        await Batch.updateOne({ _id: batch._id }, { $set: { status: 'draft' } });
+        
+        res.json({ message: 'Batch recalled successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error recalling batch' });
+    }
+});
+`;
+
+// Insert after dashboard-stats
+code = code.replace(
+    "// @desc    Search programmes for standalone scoring",
+    pipelineEndpoint + "\n\n// @desc    Search programmes for standalone scoring"
+);
+
+// Insert after submit batch
+code = code.replace(
+    "// @desc    Edit published results directly (Post-Publish Edit)",
+    recallEndpoint + "\n\n// @desc    Edit published results directly (Post-Publish Edit)"
+);
 
 fs.writeFileSync('routes/resultEntryRoutes.js', code);
-console.log("Patched resultEntryRoutes.js successfully");
+console.log("Patched resultEntryRoutes.js");
