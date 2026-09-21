@@ -594,13 +594,36 @@ router.get('/batches/:id', async (req, res) => {
         // We only want the details of results belonging to THIS batch for the programme printouts
         const batchResults = results.filter(r => r.batchId && r.batchId.toString() === batch._id.toString());
 
+        // Compute previousTotal for each candidate: sum of approved points from results NOT in this batch
+        const batchProgrammeIds = new Set(batch.programmes.map(p => p._id.toString()));
+        const previousTotals = {};
+
+        results.forEach(r => {
+            if (!r.candidate) return;
+            const cId = r.candidate._id.toString();
+            // Only count approved results that are NOT in this batch's programmes
+            if (r.status === 'approved' && r.programme && !batchProgrammeIds.has(r.programme._id.toString())) {
+                previousTotals[cId] = (previousTotals[cId] || 0) + (r.totalPoints || 0);
+            }
+        });
+
+        // Enrich batchResults with previousTotal and grandTotal
+        const enrichedBatchResults = batchResults.map(r => {
+            const rObj = r.toObject ? r.toObject() : { ...r };
+            const cId = r.candidate ? r.candidate._id.toString() : null;
+            const prevTotal = cId ? (previousTotals[cId] || 0) : 0;
+            rObj.previousTotal = prevTotal;
+            rObj.grandTotal = prevTotal + (r.totalPoints || 0);
+            return rObj;
+        });
+
         res.json({ 
             batch, 
             leaderboard, 
             overallToppers,
             categoryToppers, 
-            batchResults,
-            resultsCount: batchResults.length 
+            batchResults: enrichedBatchResults,
+            resultsCount: enrichedBatchResults.length 
         });
     } catch (error) {
         console.error(error);

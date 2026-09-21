@@ -26,7 +26,7 @@ router.get('/', protect, async (req, res) => {
     }
 });
 
-const { publishBatch, getJudgmentFeedback } = require('../controllers/resultController');
+const { publishBatch, revertBatch, getJudgmentFeedback } = require('../controllers/resultController');
 
 // @desc    Get all results including remarks
 // @route   GET /api/results/judgment-feedback
@@ -66,6 +66,11 @@ router.get('/published', async (req, res) => {
 // @route   POST /api/results/batch-publish
 // @access  Private/Admin
 router.post('/batch-publish', protect, authorize('admin'), publishBatch);
+// @desc    Revert a published batch of results
+// @route   POST /api/results/batch-revert
+// @access  Private/Admin
+router.post('/batch-revert', protect, authorize('admin'), revertBatch);
+
 
 // @desc    Get current judge's submitted results
 // @route   GET /api/results/my-submissions

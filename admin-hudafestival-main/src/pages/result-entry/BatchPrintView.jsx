@@ -38,7 +38,7 @@ export default function BatchPrintView() {
         <div className="!text-black font-sans bg-white text-black min-h-screen p-8 max-w-5xl mx-auto print:p-0 print:m-0">
             <div className="!text-black text-center mb-8 border-b-2 border-black pb-4">
                 <div className="!text-black flex justify-center mb-4"><Logo className="!text-black w-48 grayscale" /></div>
-                <h1 className="!text-black text-3xl font-black uppercase tracking-widest !text-black">Result Batch Report</h1>
+                <h1 className="!text-black text-3xl font-black uppercase tracking-widest">Result Batch Report</h1>
                 <div className="!text-black text-sm font-bold uppercase mt-2">Batch: {batch.name}</div>
                 <div className="!text-black text-xs mt-1 text-gray-500">Generated on {new Date().toLocaleString()}</div>
             </div>
@@ -46,7 +46,15 @@ export default function BatchPrintView() {
             <div className="!text-black space-y-8 mb-12">
                 {batch.programmes.map(prog => {
                     const progResults = batchResults.filter(r => r.programme && r.programme._id === prog._id);
-                    const scoredResults = progResults.filter(r => r.rank && r.rank !== '-' && r.totalPoints > 0);
+                    const scoredResults = progResults
+                        .filter(r => r.rank || r.grade || r.totalPoints > 0)
+                        .sort((a, b) => {
+                            // Ranked candidates first (by rank ascending), then grade-only (by points desc)
+                            if (a.rank && b.rank) return a.rank - b.rank;
+                            if (a.rank && !b.rank) return -1;
+                            if (!a.rank && b.rank) return 1;
+                            return (b.totalPoints || 0) - (a.totalPoints || 0);
+                        });
                     
                     if (scoredResults.length === 0) return null; 
 
@@ -62,7 +70,9 @@ export default function BatchPrintView() {
                                         <th className="!text-black py-2">Team</th>
                                         <th className="!text-black py-2">Pos</th>
                                         <th className="!text-black py-2">Grade</th>
-                                        <th className="!text-black py-2 text-right">Points</th>
+                                        <th className="!text-black py-2 text-right">Prev Total</th>
+                                        <th className="!text-black py-2 text-right">Marks</th>
+                                        <th className="!text-black py-2 text-right">Grand Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -70,9 +80,11 @@ export default function BatchPrintView() {
                                         <tr key={idx} className="!text-black border-b border-gray-200 last:border-0">
                                             <td className="!text-black py-2 font-bold">{r.candidate?.name || 'Unknown'}</td>
                                             <td className="!text-black py-2 text-gray-700">{r.candidate?.team?.name || r.team?.name || 'Unknown'}</td>
-                                            <td className="!text-black py-2 font-bold">{r.rank}</td>
-                                            <td className="!text-black py-2 font-bold">{r.grade}</td>
+                                            <td className="!text-black py-2 font-bold">{r.rank || '-'}</td>
+                                            <td className="!text-black py-2 font-bold">{r.grade || '-'}</td>
+                                            <td className="!text-black py-2 text-right text-gray-500">{r.previousTotal || 0}</td>
                                             <td className="!text-black py-2 font-bold text-right">{r.totalPoints} pts</td>
+                                            <td className="!text-black py-2 font-bold text-right">{(r.previousTotal || 0) + (r.totalPoints || 0)} pts</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -192,7 +204,7 @@ export default function BatchPrintView() {
             </div>
             
             <div className="!text-black fixed bottom-4 right-4 print:hidden">
-                <button onClick={() => window.print()} className="bg-blue-600 text-white text-white px-6 py-3 rounded-full font-bold shadow-lg">
+                <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-3 rounded-full font-bold shadow-lg">
                     Print Report
                 </button>
             </div>

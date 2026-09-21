@@ -351,7 +351,58 @@ const deleteResult = async (req, res) => {
         res.status(500).json({ message: 'Failed to delete result', error: error.message || 'Unknown error' });
     }
 };
-module.exports = { calculatePointsForResult, deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+
+const revertBatch = async (req, res) => {
+    try {
+        const { batchId } = req.body;
+        if (!batchId) return res.status(400).json({ message: 'batchId is required' });
+
+        const approvedResults = await Result.find({ batchId, status: 'approved' });
+        
+        // Collect affected programme IDs so we can reset isResultPublished
+        const affectedProgrammeIds = new Set();
+
+        for (const result of approvedResults) {
+            const pointsToRevert = result.totalPoints || 0;
+            if (pointsToRevert > 0) {
+                await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -pointsToRevert } });
+                const candidate = await Candidate.findById(result.candidate);
+                if (candidate && candidate.team) {
+                    await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -pointsToRevert } });
+                }
+            }
+            
+            // Track which programmes are affected
+            if (result.programme) {
+                affectedProgrammeIds.add(result.programme.toString());
+            }
+
+            // Zero out points and revert status (match unpublishResults behavior)
+            result.status = 'pending';
+            result.pointsFromRank = 0;
+            result.pointsFromGrade = 0;
+            result.totalPoints = 0;
+            await result.save();
+        }
+
+        // Reset isResultPublished for each affected programme
+        for (const progId of affectedProgrammeIds) {
+            await Programme.updateOne({ _id: progId }, { $set: { isResultPublished: false } });
+        }
+
+        const Batch = require('../models/Batch');
+        await Batch.updateOne({ _id: batchId }, { $set: { status: 'submitted' } });
+        
+        await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_BULK_REVERTED', entityType: 'Batch', entityId: batchId, req });
+        
+        res.status(200).json({ message: `Reverted ${approvedResults.length} results back to pending.` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+module.exports = { revertBatch, calculatePointsForResult, deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
 
 
 
