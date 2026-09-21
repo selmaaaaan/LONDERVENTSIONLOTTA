@@ -126,7 +126,7 @@ export default function AllResultsPage() {
                                         <div className="w-24 flex justify-end">
                                             {(p.pipelineStatus === 'not_entered' || p.pipelineStatus === 'ready' || p.pipelineStatus === 'published') && (
                                                 <button 
-                                                    onClick={() => navigate(\`/result-entry/enter?programme=\${p._id}\`)}
+                                                    onClick={() => navigate(`/result-entry/enter?programme=${p._id}`)}
                                                     className="p-2 text-[var(--color-primary)] bg-[var(--color-primary)]/10 hover:bg-[var(--color-primary)]/20 rounded-lg flex items-center gap-2"
                                                 >
                                                     <Edit2 size={16} />
@@ -134,7 +134,7 @@ export default function AllResultsPage() {
                                             )}
                                             {p.pipelineStatus === 'in_batch' && (
                                                 <button 
-                                                    onClick={() => navigate(\`/result-entry/batches/\${p.batchId}\`)}
+                                                    onClick={() => navigate(`/result-entry/batches/${p.batchId}`)}
                                                     className="p-2 text-orange-500 bg-orange-500/10 hover:bg-orange-500/20 rounded-lg"
                                                     title="View in Batch"
                                                 >
