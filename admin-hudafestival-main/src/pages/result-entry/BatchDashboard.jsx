@@ -43,11 +43,61 @@ export default function BatchDashboard() {
         }
     };
 
-    const handleDelete = (e, batch) => {
-        e.stopPropagation(); // prevent navigation
+    
+    
+    const handleRecall = async (e, batch) => {
+        e.stopPropagation();
+        showModal({
+            title: "Recall Batch",
+            message: `Recall '${batch.name}' from Admin? It will be pulled back to Draft status here and removed from Admin's Pending Results list until you resubmit it.`,
+            confirmText: "Recall",
+            onConfirm: async () => {
+                try {
+                    await api.put(`/result-entry/batches/${batch._id}/recall`);
+                    showToast(`Batch '${batch.name}' recalled successfully.`);
+                    fetchBatches();
+                } catch (err) {
+                    showToast(err.response?.data?.message || 'Error recalling batch.', 'error');
+                }
+            }
+        });
+    };
+    
+const handleDelete = (e, batch) => {
+        e.stopPropagation();
+        
+        if (batch.status === 'published') {
+            const batchNamePrompt = window.prompt(`This result is LIVE on the public site. Deleting it will immediately remove it from the public leaderboard and results page. This cannot be undone.\n\nType the exact batch name to confirm:\n${batch.name}`);
+            if (batchNamePrompt !== batch.name) {
+                showToast('Batch name did not match, delete cancelled.', 'error');
+                return;
+            }
+            
+            showModal({
+                title: 'Confirm Live Data Deletion',
+                message: `You are about to irreversibly delete '${batch.name}' and reverse its points from live candidate scores. Proceed?`,
+                confirmText: 'Delete Live Batch',
+                isDestructive: true,
+                onConfirm: async () => {
+                    try {
+                        await api.delete(`/result-entry/batches/${batch._id}`);
+                        showToast('Live batch deleted successfully', 'success');
+                        fetchBatches();
+                    } catch (error) {
+                        showToast(error.response?.data?.message || 'Failed to delete live batch', 'error');
+                    }
+                }
+            });
+            return;
+        }
+
+        const msg = batch.status === 'submitted' 
+            ? "This batch is awaiting admin approval. Deleting it will pull it back and its results return to Ready Results."
+            : `Delete batch '${batch.name}'? This will not delete the saved results — they'll return to Ready Results.`;
+            
         showModal({
             title: 'Delete Batch',
-            message: `Delete batch '${batch.name}'? This will not delete the saved results — they'll return to Ready Results.`,
+            message: msg,
             confirmText: 'Delete Batch',
             isDestructive: true,
             onConfirm: async () => {
@@ -56,11 +106,12 @@ export default function BatchDashboard() {
                     showToast('Batch deleted', 'success');
                     fetchBatches();
                 } catch (error) {
-                    showToast('Failed to delete batch', 'error');
+                    showToast(error.response?.data?.message || 'Failed to delete batch', 'error');
                 }
             }
         });
     };
+
 
     const handleEditSave = async (e) => {
         e.preventDefault();
@@ -106,8 +157,8 @@ export default function BatchDashboard() {
                             className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 cursor-pointer hover:border-[var(--color-primary)] hover:shadow-lg transition-all group relative"
                         >
                             {/* Action Buttons */}
-                            {batch.status === 'draft' && (
-                                <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="absolute top-4 right-4 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                {batch.status === 'draft' && (
                                     <button 
                                         onClick={(e) => {
                                             e.stopPropagation();
@@ -118,14 +169,23 @@ export default function BatchDashboard() {
                                     >
                                         <Edit2 size={14} />
                                     </button>
+                                )}
+                                {batch.status === 'submitted' && typeof handleRecall === 'function' && (
                                     <button 
-                                        onClick={(e) => handleDelete(e, batch)}
-                                        className="p-1.5 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded"
+                                        onClick={(e) => handleRecall(e, batch)}
+                                        className="p-1.5 text-orange-500 bg-orange-500/10 hover:bg-orange-500/20 rounded flex items-center gap-1 text-xs font-bold uppercase tracking-wider"
                                     >
-                                        <Trash2 size={14} />
+                                        <Undo size={14} />
+                                        Recall
                                     </button>
-                                </div>
-                            )}
+                                )}
+                                <button 
+                                    onClick={(e) => handleDelete(e, batch)}
+                                    className="p-1.5 text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
+                            </div>
 
                             <div className="flex justify-between items-start mb-4 pr-16">
                                 <h3 className="font-bold text-[var(--color-text-heading)] text-lg group-hover:text-[var(--color-primary)] transition-colors">{batch.name}</h3>

@@ -11,7 +11,6 @@ const navItems = [
   { key: 'search', label: 'Search', icon: Search },
   { key: 'registration_review', label: 'Registrations', icon: Clock },
   { key: 'team_registration_list', label: 'Registration List', icon: Table2 },
-  { key: 'results', label: 'Results', icon: Trophy },
   { key: 'pending results', label: 'Pending Results', icon: Clock },
   { key: 'judgment_feedback', label: 'Judgment Feedback', icon: FileSpreadsheet },
   { key: 'adjustments', label: 'Point Adjustments', icon: Sliders },

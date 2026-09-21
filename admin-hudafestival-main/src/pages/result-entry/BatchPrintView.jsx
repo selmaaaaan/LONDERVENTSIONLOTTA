@@ -45,7 +45,7 @@ export default function BatchPrintView() {
             <div className="!text-black space-y-8 mb-12">
                 {batch.programmes.map(prog => {
                     const progResults = batchResults.filter(r => r.programme && r.programme._id === prog._id);
-                    const scoredResults = progResults.filter(r => r.position && r.position !== '-' && r.points > 0);
+                    const scoredResults = progResults.filter(r => r.rank && r.rank !== '-' && r.totalPoints > 0);
                     
                     if (scoredResults.length === 0) return null; 
 
@@ -68,10 +68,10 @@ export default function BatchPrintView() {
                                     {scoredResults.map((r, idx) => (
                                         <tr key={idx} className="!text-black border-b border-gray-200 last:border-0">
                                             <td className="!text-black py-2 font-bold">{r.candidate?.name || 'Unknown'}</td>
-                                            <td className="!text-black py-2 text-gray-700">{r.team?.name || 'Unknown'}</td>
-                                            <td className="!text-black py-2 font-bold">{r.position}</td>
+                                            <td className="!text-black py-2 text-gray-700">{r.candidate?.team?.name || r.team?.name || 'Unknown'}</td>
+                                            <td className="!text-black py-2 font-bold">{r.rank}</td>
                                             <td className="!text-black py-2 font-bold">{r.grade}</td>
-                                            <td className="!text-black py-2 font-bold text-right">{r.points} pts</td>
+                                            <td className="!text-black py-2 font-bold text-right">{r.totalPoints} pts</td>
                                         </tr>
                                     ))}
                                 </tbody>

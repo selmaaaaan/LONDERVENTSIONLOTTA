@@ -416,10 +416,10 @@ router.delete('/batches/:id', async (req, res) => {
     try {
         const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id });
         if (!batch) return res.status(404).json({ message: 'Batch not found' });
-        if (batch.status !== 'draft') return res.status(400).json({ message: 'Only draft batches can be deleted' });
+        if (batch.status === 'published') return res.status(400).json({ message: 'Published batches cannot be deleted this way' });
         
-        // Unlink results
-        await Result.updateMany({ batchId: batch._id }, { $set: { batchId: null } });
+        // Unlink results and reset them to draft (so they return to Ready state even if they were pending)
+        await Result.updateMany({ batchId: batch._id }, { $set: { batchId: null, status: 'draft' } });
         
         // Delete batch
         await batch.deleteOne();
