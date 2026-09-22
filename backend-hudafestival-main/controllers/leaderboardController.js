@@ -68,4 +68,37 @@ const getLeaderboards = async (req, res) => {
     }
 };
 
-module.exports = { getLeaderboards };
+const Result = require('../models/Result');
+
+const getTeamBreakdown = async (req, res) => {
+    try {
+        const { teamId } = req.params;
+        const candidates = await Candidate.find({ team: teamId }).select('_id');
+        const candidateIds = candidates.map(c => c._id);
+        
+        const results = await Result.find({ candidate: { $in: candidateIds }, status: 'approved' })
+            .populate('programme', 'name category format')
+            .populate('candidate', 'name admissionNo category')
+            .sort({ totalPoints: -1 });
+            
+        res.status(200).json(results);
+    } catch(err) {
+        res.status(500).json({ message: 'Failed to fetch team breakdown', error: err.message });
+    }
+};
+
+const getCandidateBreakdown = async (req, res) => {
+    try {
+        const { candidateId } = req.params;
+        const results = await Result.find({ candidate: candidateId, status: 'approved' })
+            .populate('programme', 'name category format')
+            .populate('candidate', 'name admissionNo category')
+            .sort({ totalPoints: -1 });
+            
+        res.status(200).json(results);
+    } catch(err) {
+        res.status(500).json({ message: 'Failed to fetch candidate breakdown', error: err.message });
+    }
+};
+module.exports = { getLeaderboards, getTeamBreakdown, getCandidateBreakdown };
+

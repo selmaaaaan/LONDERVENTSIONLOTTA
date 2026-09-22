@@ -45,7 +45,23 @@ export default function BatchPrintView() {
 
             <div className="!text-black space-y-8 mb-12">
                 {batch.programmes.map(prog => {
-                    const progResults = batchResults.filter(r => r.programme && r.programme._id === prog._id);
+                    let progResults = batchResults.filter(r => r.programme && r.programme._id === prog._id);
+
+                    if (prog.format === 'Group' || prog.category === 'KULLIYYAH') {
+                        const teamMap = {};
+                        progResults.forEach(r => {
+                            const tId = r.candidate?.team?._id || r.candidate?.team || r.team?._id || r.team || 'unknown';
+                            if (!teamMap[tId]) teamMap[tId] = { ...r, _groupNames: [] };
+                            if (r.candidate && r.candidate.name) teamMap[tId]._groupNames.push(r.candidate.name);
+                        });
+                        progResults = Object.values(teamMap).map(r => {
+                            if (r._groupNames && r._groupNames.length > 0) {
+                                r.candidate = { ...r.candidate, name: r._groupNames.join(', ') };
+                            }
+                            return r;
+                        });
+                    }
+
                     const scoredResults = progResults
                         .filter(r => r.rank || r.grade || r.totalPoints > 0)
                         .sort((a, b) => {

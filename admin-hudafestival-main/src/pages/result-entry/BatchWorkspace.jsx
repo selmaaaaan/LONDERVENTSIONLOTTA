@@ -5,6 +5,74 @@ import api from '../../services/api';
 import { useResultUI } from '../../context/ResultEntryUIContext';
 import EditProgrammeModal from '../../components/EditProgrammeModal';
 
+
+const ProgrammeDrilldownModal = ({ programme, results, onClose }) => {
+    let displayResults = results;
+    if (programme.format === 'Group' || programme.category === 'KULLIYYAH') {
+        const teamMap = {};
+        displayResults.forEach(r => {
+            const tId = r.candidate?.team?._id || r.candidate?.team || r.team?._id || r.team || 'unknown';
+            if (!teamMap[tId]) teamMap[tId] = { ...r, _groupNames: [] };
+            if (r.candidate && r.candidate.name) teamMap[tId]._groupNames.push(r.candidate.name);
+        });
+        displayResults = Object.values(teamMap).map(r => {
+            if (r._groupNames && r._groupNames.length > 0) {
+                r.candidate = { ...r.candidate, name: r._groupNames.join(', ') };
+            }
+            return r;
+        });
+    }
+
+    displayResults = displayResults.filter(r => r.rank || r.grade || r.totalPoints > 0).sort((a, b) => {
+        if (a.rank && b.rank) return a.rank - b.rank;
+        if (a.rank && !b.rank) return -1;
+        if (!a.rank && b.rank) return 1;
+        return (b.totalPoints || 0) - (a.totalPoints || 0);
+    });
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[85vh]" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+                    <div>
+                        <h2 className="text-xl font-bold text-gray-900">{programme.name}</h2>
+                        <p className="text-sm text-gray-500 mt-0.5">Programme Results Drill-down</p>
+                    </div>
+                    <button onClick={onClose} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full">X</button>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                    {displayResults.length === 0 ? (
+                        <div className="text-center text-gray-500 py-8">No scored results found.</div>
+                    ) : (
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-gray-50 text-gray-900 border-b">
+                                <tr>
+                                    <th className="px-4 py-3">Candidate</th>
+                                    <th className="px-4 py-3">Team</th>
+                                    <th className="px-4 py-3 text-center">Pos</th>
+                                    <th className="px-4 py-3 text-center">Grade</th>
+                                    <th className="px-4 py-3 text-right">Pts</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {displayResults.map((r, i) => (
+                                    <tr key={i}>
+                                        <td className="px-4 py-3 font-medium">{r.candidate?.name || 'Unknown'}</td>
+                                        <td className="px-4 py-3 text-gray-600">{r.candidate?.team?.name || r.team?.name || 'Unknown'}</td>
+                                        <td className="px-4 py-3 text-center font-bold">{r.rank || '-'}</td>
+                                        <td className="px-4 py-3 text-center font-bold">{r.grade || '-'}</td>
+                                        <td className="px-4 py-3 text-right font-bold">{r.totalPoints || 0}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export default function BatchWorkspace() {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -19,6 +87,7 @@ export default function BatchWorkspace() {
     const [readyProgrammes, setReadyProgrammes] = useState([]);
     const [selectedToAttach, setSelectedToAttach] = useState([]);
     const [editingProgramme, setEditingProgramme] = useState(null);
+    const [selectedProgrammeDrilldown, setSelectedProgrammeDrilldown] = useState(null);
 
     const fetchBatchData = async () => {
         try {
@@ -214,19 +283,19 @@ export default function BatchWorkspace() {
                             ) : (
                                 <div className="space-y-3">
                                     {batch.programmes.map(p => (
-                                        <div key={p._id} className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl flex justify-between items-center group">
+                                        <div key={p._id} onClick={() => setSelectedProgrammeDrilldown(p)} className="p-4 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl flex justify-between items-center group cursor-pointer hover:border-[var(--color-primary)]">
                                             <div>
                                                 <div className="font-bold text-sm text-[var(--color-text-heading)]">{p.name}</div>
                                                 <div className="text-xs text-[var(--color-text-muted)]">{p.code} • {p.category}</div>
                                             </div>
                                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 {!isLocked && (
-                                                    <button onClick={() => setEditingProgramme(p)} className="text-[var(--color-primary)] p-2 hover:bg-[var(--color-primary)]/10 rounded-lg" title="Edit Results">
+                                                    <button onClick={(e) => { e.stopPropagation(); setEditingProgramme(p); }} className="text-[var(--color-primary)] p-2 hover:bg-[var(--color-primary)]/10 rounded-lg" title="Edit Results">
                                                         <PenTool size={16} />
                                                     </button>
                                                 )}
                                                 {!isLocked && (
-                                                    <button onClick={() => detachProgramme(p._id)} className="text-orange-500 p-2 hover:bg-orange-500/10 rounded-lg" title="Remove from Batch (Return to Ready)">
+                                                    <button onClick={(e) => { e.stopPropagation(); detachProgramme(p._id); }} className="text-orange-500 p-2 hover:bg-orange-500/10 rounded-lg" title="Remove from Batch (Return to Ready)">
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                                                     </button>
                                                 )}
@@ -391,7 +460,10 @@ export default function BatchWorkspace() {
                 </div>
             )}
 
-            {editingProgramme && (
+            {selectedProgrammeDrilldown && (
+                  <ProgrammeDrilldownModal programme={selectedProgrammeDrilldown} results={batchResults.filter(r => r.programme && r.programme._id === selectedProgrammeDrilldown._id)} onClose={() => setSelectedProgrammeDrilldown(null)} />
+              )}
+              {editingProgramme && (
                 <div className="print:hidden">
                     <EditProgrammeModal 
                         programme={editingProgramme} 

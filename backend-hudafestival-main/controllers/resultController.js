@@ -14,20 +14,26 @@ const savePendingResults = async (req, res) => {
     const Programme = require('../models/Programme');
     const prog = await Programme.findById(programmeId);
     if (prog && prog.isResultPublished) return res.status(400).json({ message: 'Programme is published. Unpublish first.' });
+    
+    const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
+    
     try {
         for (const resultData of results) {
             const { candidateId, rank, grade } = resultData;
-            // THE FIX: Explicitly reset points and set status on every save.
+            const tempResult = { rank: rank || null, grade: grade || null };
+            const { pointsFromRank, pointsFromGrade, totalPoints } = calculatePointsForResult(tempResult, prog, POSITION_POINTS, GRADE_POINTS);
+
+            // THE FIX: Explicitly set points and set status on every save.
             // This prevents old 'approved' results from being stuck.
             await Result.findOneAndUpdate(
                 { programme: programmeId, candidate: candidateId },
                 { 
-                    rank: rank || null, 
-                    grade: grade || null, 
+                    rank: tempResult.rank, 
+                    grade: tempResult.grade, 
                     status: 'pending',
-                    pointsFromRank: 0,
-                    pointsFromGrade: 0,
-                    totalPoints: 0
+                    pointsFromRank,
+                    pointsFromGrade,
+                    totalPoints
                 },
                 { upsert: true, new: true }
             );
@@ -77,10 +83,10 @@ const approveForProgramme = async (programmeId, user) => {
         result.status = 'approved';
         await result.save();
 
-        await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: totalPoints } });
+        await Candidate.updateOne({ _id: result.candidate  }, { $inc: { totalPoints: totalPoints  } }, { isSystemScoreUpdate: true });
         const candidate = await Candidate.findById(result.candidate);
         if (candidate) {
-             await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: totalPoints } });
+             await Team.updateOne({ _id: candidate.team  }, { $inc: { totalPoints: totalPoints  } }, { isSystemScoreUpdate: true });
         }
     }
     
@@ -106,12 +112,12 @@ const unpublishResults = async (req, res) => {
             const pointsToRevert = result.totalPoints || 0;
             
             // Revert candidate points
-            await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -pointsToRevert } });
+            await Candidate.updateOne({ _id: result.candidate  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
             
             // Revert team points
             const candidate = await Candidate.findById(result.candidate);
             if (candidate) {
-                await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -pointsToRevert } });
+                await Team.updateOne({ _id: candidate.team  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
             }
             
             // Set result back to pending
@@ -211,26 +217,32 @@ const savePendingResultsBulk = async (req, res) => {
         return res.status(400).json({ message: 'Results must be an array.' });
     }
 
+    const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
     try {
-        const bulkOps = results.map(resultData => ({
-            updateOne: {
-                filter: { programme: programmeId, candidate: resultData.candidateId },
-                update: {
-                    $set: {
-                        rank: resultData.rank || null,
-                        grade: resultData.grade || null,
-                        remarks: resultData.remarks || null,
-                        status: 'pending',
-                        batchId: batchId || null,
-                        submittedBy: req.user._id,
-                        pointsFromRank: 0,
-                        pointsFromGrade: 0,
-                        totalPoints: 0
-                    }
-                },
-                upsert: true
-            }
-        }));
+        const bulkOps = results.map(resultData => {
+            const tempResult = { rank: resultData.rank || null, grade: resultData.grade || null };
+            const { pointsFromRank, pointsFromGrade, totalPoints } = calculatePointsForResult(tempResult, programme, POSITION_POINTS, GRADE_POINTS);
+
+            return {
+                updateOne: {
+                    filter: { programme: programmeId, candidate: resultData.candidateId },
+                    update: {
+                        $set: {
+                            rank: tempResult.rank,
+                            grade: tempResult.grade,
+                            remarks: resultData.remarks || null,
+                            status: 'pending',
+                            batchId: batchId || null,
+                            submittedBy: req.user._id,
+                            pointsFromRank,
+                            pointsFromGrade,
+                            totalPoints
+                        }
+                    },
+                    upsert: true
+                }
+            };
+        });
 
         if (bulkOps.length > 0) {
             await Result.bulkWrite(bulkOps);
@@ -256,7 +268,7 @@ const savePendingResultsBulk = async (req, res) => {
 const updateResult = async (req, res) => {
     const { rank, grade } = req.body;
     try {
-        const result = await Result.findById(req.params.resultId);
+        const result = await Result.findById(req.params.resultId).populate('programme');
         if (!result) return res.status(404).json({ message: 'Result not found' });
         
         if (result.status === 'approved') {
@@ -266,8 +278,15 @@ const updateResult = async (req, res) => {
         result.rank = rank || null;
         result.grade = grade || null;
         
+        const { POSITION_POINTS, GRADE_POINTS } = require('../config/bylawRules');
+        const { pointsFromRank, pointsFromGrade, totalPoints } = calculatePointsForResult(result, result.programme, POSITION_POINTS, GRADE_POINTS);
+        
+        result.pointsFromRank = pointsFromRank;
+        result.pointsFromGrade = pointsFromGrade;
+        result.totalPoints = totalPoints;
+        
         await result.save();
-        await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_UPDATED', entityType: 'Result', entityId: result._id, details: { rank, grade }, req });
+        await logAction({ actor: req.user._id, actorRole: req.user.role, action: 'RESULT_UPDATED', entityType: 'Result', entityId: result._id, details: { rank, grade, totalPoints }, req });
         res.status(200).json(result);
     } catch (error) {
         console.error(error);
@@ -336,10 +355,10 @@ const deleteResult = async (req, res) => {
         if (pointsToRevert > 0) {
             const Candidate = require('../models/Candidate');
             const Team = require('../models/Team');
-            await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -pointsToRevert } });
+            await Candidate.updateOne({ _id: result.candidate  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
             const candidate = await Candidate.findById(result.candidate);
             if (candidate && candidate.team) {
-                await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -pointsToRevert } });
+                await Team.updateOne({ _id: candidate.team  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
             }
         }
         await Result.findByIdAndDelete(result._id);
@@ -365,10 +384,10 @@ const revertBatch = async (req, res) => {
         for (const result of approvedResults) {
             const pointsToRevert = result.totalPoints || 0;
             if (pointsToRevert > 0) {
-                await Candidate.updateOne({ _id: result.candidate }, { $inc: { totalPoints: -pointsToRevert } });
+                await Candidate.updateOne({ _id: result.candidate  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
                 const candidate = await Candidate.findById(result.candidate);
                 if (candidate && candidate.team) {
-                    await Team.updateOne({ _id: candidate.team }, { $inc: { totalPoints: -pointsToRevert } });
+                    await Team.updateOne({ _id: candidate.team  }, { $inc: { totalPoints: -pointsToRevert  } }, { isSystemScoreUpdate: true });
                 }
             }
             
@@ -403,6 +422,8 @@ const revertBatch = async (req, res) => {
 };
 
 module.exports = { revertBatch, calculatePointsForResult, deleteResult,  savePendingResults, savePendingResultsBulk, approvePendingResults, unpublishResults, getProgrammeResults, publishBatch, updateResult, getJudgmentFeedback };
+
+
 
 
 

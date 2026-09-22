@@ -1,16 +1,18 @@
 import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, Trophy, BarChart3 } from 'lucide-react';
+import { Users, Calendar, Trophy, BarChart3, Search } from 'lucide-react';
 import api from '../services/api';
 import StatCard from '../components/StatCard';
 import GettingStartedCard from '../components/GettingStartedCard';
 import DashboardHero from '../components/DashboardHero';
+import ScoreBreakdownModal from '../components/ScoreBreakdownModal';
 
 const DashboardPage = () => {
   const [stats, setStats] = useState({ teams: 0, programmes: 0, candidates: 0, published: 0 });
   const [progressData, setProgressData] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [breakdownEntity, setBreakdownEntity] = useState(null);
   const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}');
 
   useEffect(() => {
@@ -41,7 +43,7 @@ const DashboardPage = () => {
   }, []);
 
   return (
-    <div className="p-8 w-full max-w-[1600px] mx-auto">
+    <div className="p-8 w-full max-w-[1600px] mx-auto relative">
       <DashboardHero 
         userName={userInfo?.userName || 'Admin'} 
         roleName={userInfo?.role?.replace('_', ' ') || 'Admin'} 
@@ -74,16 +76,23 @@ const DashboardPage = () => {
                 {leaderboard?.teamLeaderboard?.length > 0 ? (
                   <div className="space-y-3 pr-2">
                     {leaderboard.teamLeaderboard.map((team, index) => (
-                      <div key={team._id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)]">
+                      <div key={team._id} className="flex items-center justify-between p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] group hover:border-[var(--color-primary)] transition-colors cursor-pointer" onClick={() => setBreakdownEntity({ type: 'team', id: team._id, name: team.name })}>
                         <div className="flex items-center gap-3">
                           <div className="w-6 font-bold text-[var(--color-text-muted)] text-sm">{index + 1}</div>
                           <div className="w-3 h-10 rounded-full" style={{ backgroundColor: team.color || '#ccc' }}></div>
                           <div>
-                            <div className="font-bold text-[var(--color-text-heading)]">{team.name}</div>
+                            <div className="font-bold text-[var(--color-text-heading)] group-hover:text-[var(--color-primary)] transition-colors flex items-center gap-2">
+                              {team.name}
+                            </div>
                             {team.motto && <div className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">{team.motto}</div>}
                           </div>
                         </div>
-                        <div className="text-xl font-bold text-[var(--color-primary)]">{team.totalPoints}</div>
+                        <div className="flex items-center gap-4">
+                           <div className="text-xl font-bold text-[var(--color-primary)]">{team.totalPoints}</div>
+                           <button className="text-[var(--color-text-muted)] hover:text-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity" title="View Breakdown">
+                              <Search size={16} />
+                           </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -103,13 +112,16 @@ const DashboardPage = () => {
                       const topper = categoryData.candidates?.[0];
                       if (!topper) return null;
                       return (
-                        <div key={categoryData.category} className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0">
-                          <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">
+                        <div key={categoryData.category} className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0 group cursor-pointer" onClick={() => setBreakdownEntity({ type: 'candidate', id: topper._id, name: topper.name })}>
+                          <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2 flex justify-between items-center">
                             {categoryData.category}
+                            <span className="text-[10px] font-normal flex items-center gap-1 text-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                               <Search size={10} /> View details
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div>
-                              <div className="font-semibold text-[var(--color-text-heading)] text-sm">{topper.name}</div>
+                              <div className="font-semibold text-[var(--color-text-heading)] text-sm group-hover:text-[var(--color-primary)] transition-colors">{topper.name}</div>
                               <div className="text-xs text-[var(--color-text-muted)] flex items-center gap-1.5 mt-0.5">
                                 <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: topper.team?.color || '#ccc' }}></span>
                                 {topper.team?.name || 'Unknown Team'}
@@ -141,6 +153,13 @@ const DashboardPage = () => {
             </div>
           )}
         </>
+      )}
+
+      {breakdownEntity && (
+        <ScoreBreakdownModal 
+            entity={breakdownEntity} 
+            onClose={() => setBreakdownEntity(null)} 
+        />
       )}
     </div>
   );
