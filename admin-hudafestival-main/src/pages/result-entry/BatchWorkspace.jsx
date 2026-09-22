@@ -81,6 +81,7 @@ export default function BatchWorkspace() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [overallToppers, setOverallToppers] = useState([]);
     const [categoryToppers, setCategoryToppers] = useState({});
+    const [categoryTeamToppers, setCategoryTeamToppers] = useState({});
     const [batchResults, setBatchResults] = useState([]);
     
     const [showAddModal, setShowAddModal] = useState(false);
@@ -106,6 +107,9 @@ export default function BatchWorkspace() {
             setLeaderboard(res.data.leaderboard || []);
             setOverallToppers(res.data.overallToppers || []);
             setCategoryToppers(res.data.categoryToppers || {});
+            setCategoryTeamToppers(res.data.categoryTeamToppers || {});
+            setCategoryTeamToppers(res.data.categoryTeamToppers || {});
+            setCategoryTeamToppers(res.data.categoryTeamToppers || {});
         } catch (err) {
             console.error('Failed to load projection', err);
         }
@@ -318,7 +322,7 @@ export default function BatchWorkspace() {
                                         <Trophy size={20} className="mr-2 text-yellow-500" />
                                         Cumulative Leaderboard Projection
                                     </h3>
-                                    <p className="text-xs text-[var(--color-text-muted)] mt-1">Includes all previously published results + the unsubmitted results currently in this batch.</p>
+                                    <p className="text-xs text-[var(--color-text-muted)] mt-1">Includes all other batches' results + this batch's results.</p>
                                 </div>
                                 <div className="p-0">
                                     {leaderboard.length === 0 ? (

@@ -12,6 +12,7 @@ export default function EnterResultPage() {
     const [programmes, setProgrammes] = useState([]);
     const [selectedProg, setSelectedProg] = useState(null);
     const [candidates, setCandidates] = useState([]);
+    const [expandedGroups, setExpandedGroups] = useState({});
     const [resultsMap, setResultsMap] = useState({});
     const [isSaving, setIsSaving] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +70,7 @@ export default function EnterResultPage() {
                         const rep = r.candidates[0];
                         allCands.push({
                             ...rep,
-                            name: `${rep.name} and team (${r.team?.name || 'Unknown'})`,
+                            name: r.team?.name || 'Unknown Team',
                             _originalCandidates: r.candidates,
                             isGroupRow: true
                         });
@@ -309,14 +310,36 @@ export default function EnterResultPage() {
                                             <tr key={candidate._id} className="border-b border-[var(--color-border)] last:border-0 hover:bg-[var(--color-background)]/50 transition-colors">
                                                 <td className="px-6 py-4">
     <div className="flex justify-between items-start">
-        <div>
-            <div className="font-semibold text-[var(--color-text-heading)]">{candidate.name}</div>
-            <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
+        <div className="w-full">
+            <div className="font-semibold text-[var(--color-text-heading)] uppercase tracking-wide">{candidate.name}</div>
+            {!candidate.isGroupRow && (
+                <div className="text-sm text-[var(--color-text-muted)]">{candidate.chestNo}</div>
+            )}
+            
+            {candidate.isGroupRow && candidate._originalCandidates && (
+                <div className="mt-2">
+                    <button 
+                        onClick={() => setExpandedGroups(prev => ({...prev, [candidate._id]: !prev[candidate._id]}))}
+                        className="text-xs font-semibold text-[var(--color-primary)] hover:underline flex items-center"
+                    >
+                        {expandedGroups[candidate._id] ? 'Hide Members' : 'Show Members (' + candidate._originalCandidates.length + ')'}
+                    </button>
+                    {expandedGroups[candidate._id] && (
+                        <div className="mt-2 pl-2 border-l-2 border-[var(--color-primary)]/30 space-y-1">
+                            {candidate._originalCandidates.map(c => (
+                                <div key={c._id} className="text-xs text-[var(--color-text-muted)]">
+                                    <span className="font-medium text-gray-700">{c.name}</span> <span className="opacity-70">({c.chestNo})</span>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
         {hasApproved && rData.status === 'approved' && (
             <button 
                 onClick={() => handleDeleteSingleResult(candidate._id, candidate.name)}
-                className="text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors ml-4" 
+                className="text-red-500 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors ml-4 flex-shrink-0" 
                 title="Delete Live Result"
             >
                 <Trash2 size={16} />

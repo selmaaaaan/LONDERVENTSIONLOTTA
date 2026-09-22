@@ -625,16 +625,18 @@ router.get('/batches/:id/projection', async (req, res) => {
         // Find approved results NOT in this batch, plus ALL results in this batch
         const projectionResults = await Result.find({
             $or: [
-                { status: 'approved', batchId: { $ne: batch._id } },
-                { batchId: batch._id }
+                { status: 'approved' },
+                { batchId: { $ne: null } }
             ]
-        }).populate({
+        }).populate('programme').populate({
             path: 'candidate',
             populate: { path: 'team' }
         });
         
         const teamPoints = {};
         const candidatePoints = {};
+        const processedTeamProgrammes = new Set();
+        const categoryTeamPoints = {}; // new for Prompt 3
         
         projectionResults.forEach(r => {
             if (!r.candidate) return;
@@ -642,7 +644,28 @@ router.get('/batches/:id/projection', async (req, res) => {
             if (r.totalPoints > 0) {
                 if (c.team) {
                     const tId = c.team._id.toString();
-                    teamPoints[tId] = (teamPoints[tId] || 0) + r.totalPoints;
+                    const pId = r.programme?._id?.toString() || r.programme?.toString();
+                    const format = r.programme?.format;
+                    const category = r.programme?.category || c.category;
+                    
+                    let shouldAddTeamPoints = true;
+                    if (format === 'Group' || category === 'KULLIYYAH') {
+                        const teamProgKey = `${tId}-${pId}`;
+                        if (processedTeamProgrammes.has(teamProgKey)) {
+                            shouldAddTeamPoints = false;
+                        } else {
+                            processedTeamProgrammes.add(teamProgKey);
+                        }
+                    }
+                    
+                    if (shouldAddTeamPoints) {
+                        teamPoints[tId] = (teamPoints[tId] || 0) + r.totalPoints;
+                        
+                        if (category) {
+                            if (!categoryTeamPoints[category]) categoryTeamPoints[category] = {};
+                            categoryTeamPoints[category][tId] = (categoryTeamPoints[category][tId] || 0) + r.totalPoints;
+                        }
+                    }
                 }
                 const cId = c._id.toString();
                 if (!candidatePoints[cId]) {
@@ -677,7 +700,19 @@ router.get('/batches/:id/projection', async (req, res) => {
             if (categoryToppers[c.category].length < 3) categoryToppers[c.category].push(c);
         });
 
-        res.json({ leaderboard, overallToppers, categoryToppers });
+        const categoryTeamToppers = {};
+        for (const [cat, teamsObj] of Object.entries(categoryTeamPoints)) {
+            const sortedTeams = Object.keys(teamsObj).map(tId => ({
+                teamId: tId,
+                teamName: teamMap[tId] || 'Unknown',
+                points: teamsObj[tId]
+            })).sort((a,b) => b.points - a.points);
+            if (sortedTeams.length > 0) {
+                categoryTeamToppers[cat] = sortedTeams[0]; // just the leader
+            }
+        }
+
+        res.json({ leaderboard, overallToppers, categoryToppers, categoryTeamToppers });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server error' });

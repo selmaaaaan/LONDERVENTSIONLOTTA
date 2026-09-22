@@ -10,6 +10,7 @@ export default function BatchPrintView() {
     const [leaderboard, setLeaderboard] = useState([]);
     const [overallToppers, setOverallToppers] = useState([]);
     const [categoryToppers, setCategoryToppers] = useState({});
+    const [categoryTeamToppers, setCategoryTeamToppers] = useState({});
     const [batchResults, setBatchResults] = useState([]);
 
     useEffect(() => {
@@ -26,6 +27,7 @@ export default function BatchPrintView() {
                 setLeaderboard(projRes.data.leaderboard || []);
                 setOverallToppers(projRes.data.overallToppers || []);
                 setCategoryToppers(projRes.data.categoryToppers || {});
+                setCategoryTeamToppers(projRes.data.categoryTeamToppers || {});
                 
                 setTimeout(() => {
                     window.print();
@@ -219,6 +221,25 @@ export default function BatchPrintView() {
                                     </div>
                                 ))}
                             </div>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 border-t-2 border-gray-100 pt-8">
+                        <div className="flex items-center justify-center gap-2 mb-6">
+                            <h3 className="text-xl font-black uppercase !text-black">Category Team Leaders</h3>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            {Object.entries(categoryTeamToppers).map(([category, leader]) => (
+                                <div key={category} className="flex items-center p-4 border-2 border-green-100 bg-green-50 rounded-xl gap-4" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: '#f0fdf4', borderColor: '#dcfce7' }}>
+                                    <div className="w-24 font-black uppercase text-xs tracking-wider !text-black leading-tight">{category}</div>
+                                    <div className="flex-grow border-l-2 pl-4 border-green-200" style={{ borderColor: '#bbf7d0' }}>
+                                        <div className="font-black !text-black text-lg uppercase">{leader.teamName}</div>
+                                    </div>
+                                    <div className="text-right font-black !text-black text-xl whitespace-nowrap">
+                                        {leader.points} <span className="text-[10px] text-gray-500">PTS</span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>
