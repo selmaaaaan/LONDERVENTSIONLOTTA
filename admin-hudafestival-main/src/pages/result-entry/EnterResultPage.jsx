@@ -61,11 +61,25 @@ export default function EnterResultPage() {
             const res = await api.get(`/result-entry/programmes/${prog._id}/candidates`);
             const regs = res.data.registrations || [];
             
-            // Flatten candidates
+                        // Flatten or Group candidates
             let allCands = [];
-            regs.forEach(r => {
-                if(r.candidates) allCands = allCands.concat(r.candidates);
-            });
+            if (prog.format === 'Group' || prog.category === 'KULLIYYAH') {
+                regs.forEach(r => {
+                    if (r.candidates && r.candidates.length > 0) {
+                        const rep = r.candidates[0];
+                        allCands.push({
+                            ...rep,
+                            name: `${rep.name} and team (${r.team?.name || 'Unknown'})`,
+                            _originalCandidates: r.candidates,
+                            isGroupRow: true
+                        });
+                    }
+                });
+            } else {
+                regs.forEach(r => {
+                    if(r.candidates) allCands = allCands.concat(r.candidates);
+                });
+            }
             setCandidates(allCands);
 
             const rMap = {};

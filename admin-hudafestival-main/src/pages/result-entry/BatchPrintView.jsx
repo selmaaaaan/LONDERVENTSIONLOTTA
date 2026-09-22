@@ -15,12 +15,17 @@ export default function BatchPrintView() {
     useEffect(() => {
         const fetchBatchData = async () => {
             try {
-                const res = await api.get(`/result-entry/batches/${id}`);
-                setBatch(res.data.batch);
-                setLeaderboard(res.data.leaderboard || []);
-                setOverallToppers(res.data.overallToppers || []);
-                setCategoryToppers(res.data.categoryToppers || {});
-                setBatchResults(res.data.batchResults || []);
+                const [batchRes, projRes] = await Promise.all([
+                    api.get(`/result-entry/batches/${id}`),
+                    api.get(`/result-entry/batches/${id}/projection`)
+                ]);
+                
+                setBatch(batchRes.data.batch);
+                setBatchResults(batchRes.data.batchResults || []);
+                
+                setLeaderboard(projRes.data.leaderboard || []);
+                setOverallToppers(projRes.data.overallToppers || []);
+                setCategoryToppers(projRes.data.categoryToppers || {});
                 
                 setTimeout(() => {
                     window.print();
@@ -216,6 +221,28 @@ export default function BatchPrintView() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div className="break-before-page pt-12 pb-8 px-8 w-[210mm] mx-auto bg-white min-h-[297mm]">
+                <div className="border-b-4 border-black pb-4 mb-8">
+                    <h2 className="text-3xl font-black uppercase tracking-tight !text-black text-center">FESTIVAL STANDINGS AFTER THIS BATCH</h2>
+                    <p className="text-center font-bold text-gray-500 mt-2 uppercase tracking-widest">Cumulative Grand Total</p>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                    {leaderboard.map((team, idx) => (
+                        <div key={team.teamId} className="flex items-center p-6 border-2 border-gray-200 bg-gray-50 rounded-2xl gap-6" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact', backgroundColor: '#f9fafb' }}>
+                            <div className="flex-shrink-0 text-4xl font-black text-gray-300 w-16 text-center">#{idx + 1}</div>
+                            <div className="flex-grow">
+                                <div className="font-black uppercase !text-black text-2xl tracking-tight">{team.teamName}</div>
+                            </div>
+                            <div className="text-right">
+                                <div className="font-black !text-black text-4xl">{team.points}</div>
+                                <div className="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Total Points</div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
             
