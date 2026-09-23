@@ -55,11 +55,70 @@ const getLeaderboards = async (req, res) => {
             .sort({ totalPoints: -1 })
             .limit(10)
             .populate('team', 'name color motto');
+
+        // --- 4. Category Team Leaders: which team leads in each category ---
+        const Programme = require('../models/Programme');
+        const approvedResults = await Result.find({ status: 'approved' })
+            .populate({ path: 'candidate', select: 'team category' })
+            .populate('programme', 'category format');
+
+        const categoryTeamPoints = {};
+        const processedTeamProgrammes = new Set();
+
+        approvedResults.forEach(r => {
+            if (!r.candidate || !r.programme || !r.totalPoints) return;
+            const candidateTeamId = r.candidate.team?.toString();
+            if (!candidateTeamId) return;
+            
+            const category = r.programme.category || r.candidate.category;
+            if (!category) return;
+            
+            const pId = r.programme._id.toString();
+            const format = r.programme.format;
+
+            // Prevent double-counting Group/KULLIYYAH events per team
+            let shouldAdd = true;
+            if (format === 'Group' || category === 'KULLIYYAH') {
+                const key = `${candidateTeamId}-${pId}`;
+                if (processedTeamProgrammes.has(key)) {
+                    shouldAdd = false;
+                } else {
+                    processedTeamProgrammes.add(key);
+                }
+            }
+
+            if (shouldAdd) {
+                if (!categoryTeamPoints[category]) categoryTeamPoints[category] = {};
+                categoryTeamPoints[category][candidateTeamId] = 
+                    (categoryTeamPoints[category][candidateTeamId] || 0) + r.totalPoints;
+            }
+        });
+
+        // Build categoryTeamToppers: for each category, the team with highest points
+        const allTeams = await Team.find({}).lean();
+        const teamLookup = {};
+        allTeams.forEach(t => { teamLookup[t._id.toString()] = t; });
+
+        const categoryTeamToppers = {};
+        for (const [cat, teamsObj] of Object.entries(categoryTeamPoints)) {
+            const sorted = Object.entries(teamsObj)
+                .map(([tId, pts]) => ({
+                    teamId: tId,
+                    teamName: teamLookup[tId]?.name || 'Unknown',
+                    teamColor: teamLookup[tId]?.color || '#ccc',
+                    points: pts
+                }))
+                .sort((a, b) => b.points - a.points);
+            if (sorted.length > 0) {
+                categoryTeamToppers[cat] = sorted[0];
+            }
+        }
         
         res.status(200).json({
             teamLeaderboard,
-            categoryTopStudents, // Send the newly fixed data
+            categoryTopStudents,
             overallTopStudents,
+            categoryTeamToppers,
         });
 
     } catch (error) {

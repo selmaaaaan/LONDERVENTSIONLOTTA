@@ -4,7 +4,7 @@ const {
   protect, authorize } = require('../middlewares/authMiddleware');
 const {
   getParticipantReport, createRegistration, getRegistrations, approveRegistration,
-  rejectRegistration, updateRegistration, deleteRegistration
+  rejectRegistration, updateRegistration, deleteRegistration, substituteCandidate
 } = require('../controllers/registrationController');
 
 router.get('/report/participant-list', protect, authorize('admin'), getParticipantReport);
@@ -16,6 +16,8 @@ router.route('/')
 router.route('/:id')
   .patch(protect, authorize('admin', 'team_leader'), updateRegistration)
   .delete(protect, authorize('admin', 'team_leader'), deleteRegistration);
+
+router.patch('/:id/substitute', protect, authorize('admin'), substituteCandidate);
 
 router.patch('/:id/approve', protect, authorize('admin', 'judge'), approveRegistration);
 router.patch('/:id/reject', protect, authorize('admin', 'judge'), rejectRegistration);

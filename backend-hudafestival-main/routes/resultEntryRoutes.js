@@ -626,7 +626,7 @@ router.get('/batches/:id/projection', async (req, res) => {
         const projectionResults = await Result.find({
             $or: [
                 { status: 'approved' },
-                { batchId: { $ne: null } }
+                { batchId: req.params.id }
             ]
         }).populate('programme').populate({
             path: 'candidate',
@@ -719,21 +719,31 @@ router.get('/batches/:id/projection', async (req, res) => {
     }
 });
 
-// @desc    Submit Batch to Admin
-router.post('/batches/:id/submit', async (req, res) => {
+// @desc    Publish Batch directly
+router.post('/batches/:id/publish', async (req, res) => {
     try {
-        const batch = await Batch.findOne({ _id: req.params.id, createdBy: req.user._id, status: 'draft' });
-        if (!batch) return res.status(403).json({ message: 'Unauthorized or batch already submitted' });
+        const batch = await Batch.findOne({ _id: req.params.id, status: { $in: ['draft', 'submitted'] } });
+        if (!batch) return res.status(403).json({ message: 'Unauthorized or batch not found' });
 
-        await Batch.updateOne({ _id: batch._id }, { $set: { status: 'submitted' } });
+        // Change all draft/pending results to pending temporarily so approveForProgramme finds them
         await Result.updateMany(
-            { batchId: batch._id, status: 'draft' }, 
+            { batchId: batch._id, status: { $in: ['draft', 'pending'] } }, 
             { $set: { status: 'pending' } }
         );
 
-        res.json({ message: 'Batch submitted to Admin successfully' });
+        const { approveForProgramme } = require('../controllers/resultController');
+        
+        const results = [];
+        for (const pid of batch.programmes) {
+            results.push(await approveForProgramme(pid, req.user));
+        }
+
+        await Batch.updateOne({ _id: batch._id }, { $set: { status: 'published' } });
+
+        res.json({ message: 'Batch published successfully to public site!' });
     } catch (error) {
-        res.status(500).json({ message: 'Server error' });
+        console.error('Publish batch error:', error);
+        res.status(500).json({ message: 'Server error publishing batch' });
     }
 });
 

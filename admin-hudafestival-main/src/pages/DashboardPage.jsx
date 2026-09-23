@@ -60,14 +60,14 @@ const DashboardPage = () => {
             <StatCard icon={BarChart3} label="Published Results" value={stats.published} color="bg-indigo-600 text-white" />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 mb-8">
             {/* Getting Started Guide */}
-            <div className="lg:col-span-1">
+            <div className="xl:col-span-1">
                <GettingStartedCard progressData={progressData} />
             </div>
 
             {/* Scoreboard */}
-            <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Team Leaderboard */}
               <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 shadow-sm flex flex-col h-full">
                 <h3 className="font-bold text-lg text-[var(--color-text-heading)] mb-4 flex items-center gap-2">
@@ -137,6 +137,40 @@ const DashboardPage = () => {
                   </div>
                 ) : (
                   <div className="text-sm text-[var(--color-text-muted)] italic">No candidate scores available.</div>
+                )}
+              </div>
+
+              {/* Category Team Leaders */}
+              <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6 shadow-sm flex flex-col h-full">
+                <h3 className="font-bold text-lg text-[var(--color-text-heading)] mb-4 flex items-center gap-2">
+                  <Trophy size={18} className="text-orange-500" /> Category Team Leaders
+                </h3>
+                {leaderboard?.categoryTeamToppers && Object.keys(leaderboard.categoryTeamToppers).length > 0 ? (
+                  <div className="space-y-4 flex-1 overflow-auto pr-2">
+                    {Object.entries(leaderboard.categoryTeamToppers).map(([category, teamData]) => (
+                      <div key={category} className="pb-3 border-b border-[var(--color-border)] last:border-0 last:pb-0 group cursor-pointer" onClick={() => setBreakdownEntity({ type: 'team', id: teamData.teamId, name: teamData.teamName })}>
+                        <div className="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-2 flex justify-between items-center">
+                          {category}
+                          <span className="text-[10px] font-normal flex items-center gap-1 text-[var(--color-primary)] opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Search size={10} /> View details
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2 h-8 rounded-full inline-block" style={{ backgroundColor: teamData.teamColor || '#ccc' }}></span>
+                            <div className="font-semibold text-[var(--color-text-heading)] text-sm group-hover:text-[var(--color-primary)] transition-colors">
+                              {teamData.teamName}
+                            </div>
+                          </div>
+                          <div className="font-bold text-orange-600 bg-orange-500/10 px-2 py-1 rounded text-sm">
+                            {teamData.points} pts
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-[var(--color-text-muted)] italic">No category team leaders available.</div>
                 )}
               </div>
             </div>

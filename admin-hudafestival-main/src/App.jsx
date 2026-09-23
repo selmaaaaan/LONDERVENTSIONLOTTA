@@ -10,7 +10,7 @@ import CandidatePage from './pages/CandidatesPage';
 import ProgrammesPage from './pages/ProgrammesPage';
 // import ResultsPage from './pages/ResultsPage';
 import TeamRegistrationListPage from './pages/TeamRegistrationListPage';
-import PendingResultsPage from './pages/PendingResultPage';
+// PendingResultsPage removed — batches are managed in Result Portal
 import PointAdjustmentPage from './pages/PointAdjustmentPage';
 import Sidebar from './components/Sidebar';
 import Breadcrumbs from './components/Breadcrumbs';
@@ -18,6 +18,7 @@ import SettingsPage from './pages/SettingsPage';
 import ProgrammeParticipantSearchPage from './pages/ProgrammeParticipantSearchPage';
 import CandidateProgrammeStatusPage from './pages/CandidateProgrammeStatusPage';
 import ConflictCheckerPage from './pages/ConflictCheckerPage';
+import CandidateChangePage from './pages/CandidateChangePage';
 import UsersPage from './pages/UsersPage';
 import SchedulePage from './pages/SchedulePage';
 import JurySlipsPage from './pages/JurySlipsPage';
@@ -199,7 +200,9 @@ function App() {
               <Route path="/result-entry/enter" element={<EnterResultPage />} />
             <Route path="/result-entry/ready" element={<ReadyResultsPage />} />
             <Route path="/result-entry/batches" element={<BatchDashboard />} />
-              <Route path="/result-entry/all" element={<AllResultsPage />} />
+            <Route path="/result-entry/all" element={<AllResultsPage />} />
+            <Route path="/result-entry/point-adjustments" element={<PointAdjustmentPage />} />
+            <Route path="/result-entry/search" element={<ProgrammeParticipantSearchPage />} />
             <Route path="/result-entry/batches/:id" element={<BatchWorkspace />} />
             <Route path="*" element={<Navigate to="/result-entry/dashboard" replace />} />
           </Route>
@@ -235,7 +238,7 @@ function App() {
               <GlobalSearch onNavigate={(type) => {
                 if (type === 'teams') navigate('/dashboard');
                 else {
-                  const pathMap = { search: '/search', candidates: '/candidates', programmes: '/programmes', registration_review: '/registrations', team_registration_list: '/registration-list', 'pending results': '/pending-results', judgment_feedback: '/judgment-feedback', adjustments: '/point-adjustments', logs: '/activity-logs', gallery: '/gallery', notifications: '/notifications', topic_management: '/topic-management', schedule: '/schedule', jury_slips: '/jury-slips', conflict_checker: '/conflict-checker', users: '/users', settings: '/settings' };
+                  const pathMap = { search: '/search', candidates: '/candidates', programmes: '/programmes', registration_review: '/registrations', team_registration_list: '/registration-list', logs: '/activity-logs', gallery: '/gallery', notifications: '/notifications', topic_management: '/topic-management', schedule: '/schedule', jury_slips: '/jury-slips', conflict_checker: '/conflict-checker', users: '/users', settings: '/settings' };
                   navigate(pathMap[type] || '/dashboard');
                 }
               }} />
@@ -283,9 +286,10 @@ function App() {
                   <Route path="/candidate-status/:id" element={<ProtectedRoute allowedRoles={['admin', 'team_leader']}><CandidateProgrammeStatusPage /></ProtectedRoute>} />
                 <Route path="/programmes" element={<ProtectedRoute allowedRoles={['admin']}><ProgrammesPage /></ProtectedRoute>} />
                 <Route path="/registrations" element={<ProtectedRoute allowedRoles={['admin']}><RegistrationReviewPage /></ProtectedRoute>} />
+                <Route path="/candidate-change" element={<ProtectedRoute allowedRoles={['admin']}><CandidateChangePage /></ProtectedRoute>} />
                 {/* <Route path="/results" element={<ProtectedRoute allowedRoles={['admin']}><ResultsPage /></ProtectedRoute>} /> */}
-                <Route path="/pending-results" element={<ProtectedRoute allowedRoles={['admin']}><PendingResultsPage /></ProtectedRoute>} />
-                <Route path="/point-adjustments" element={<ProtectedRoute allowedRoles={['admin']}><PointAdjustmentPage /></ProtectedRoute>} />
+                {/* pending-results removed — batches managed in Result Portal */}
+                {/* point-adjustments moved to Result Portal */}
                 <Route path="/activity-logs" element={<ProtectedRoute allowedRoles={['admin']}><ActivityLogsPage /></ProtectedRoute>} />
                 <Route path="/topic-management" element={<ProtectedRoute allowedRoles={['admin']}><TopicManagementPage /></ProtectedRoute>} />
                 <Route path="/jury-slips" element={<ProtectedRoute allowedRoles={['admin']}><JurySlipsPage /></ProtectedRoute>} />`n                <Route path="/programme-jury-slip" element={<ProtectedRoute allowedRoles={['admin']}><ProgrammeJurySlipPage /></ProtectedRoute>} />

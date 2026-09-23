@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LogOut, PenTool, CheckSquare, Layers, LayoutDashboard, Sun, Moon, Database } from 'lucide-react';
+import { LogOut, PenTool, CheckSquare, Layers, LayoutDashboard, Sun, Moon, Database, Sliders, Search } from 'lucide-react';
 import Logo from '../components/Logo';
 import { ResultEntryProvider } from '../context/ResultEntryUIContext';
 
@@ -75,7 +75,14 @@ export default function ResultEntryLayout() {
                             <Database size={18} className="mr-3" />
                             All Results
                         </NavLink>
-
+                        <NavLink to="/result-entry/point-adjustments" className={navLinkClass}>
+                            <Sliders size={18} className="mr-3" />
+                            Point Adjustments
+                        </NavLink>
+                        <NavLink to="/result-entry/search" className={navLinkClass}>
+                            <Search size={18} className="mr-3" />
+                            Search
+                        </NavLink>
                     </nav>
 
                     <div className="p-4 border-t border-[var(--color-border)] space-y-2">

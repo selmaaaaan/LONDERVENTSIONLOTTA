@@ -209,19 +209,18 @@ export default function BatchWorkspace() {
         });
     };
 
-        const handleSubmitToAdmin = () => {
-
+        const handlePublishBatch = () => {
         showModal({
-            title: 'Submit Batch',
-            message: 'Are you sure you want to submit this batch to Admin? It will be locked for editing.',
-            confirmText: 'Submit to Admin',
+            title: 'Publish Batch',
+            message: 'Are you sure you want to publish this batch? It will immediately update the live public site and leaderboards.',
+            confirmText: 'Publish Now',
             onConfirm: async () => {
                 try {
-                    await api.post(`/result-entry/batches/${id}/submit`);
-                    showToast('Batch submitted to Admin successfully!', 'success');
+                    await api.post(`/result-entry/batches/${id}/publish`);
+                    showToast('Batch published to public site successfully!', 'success');
                     navigate('/result-entry/batches');
                 } catch (err) {
-                    showToast('Failed to submit batch', 'error');
+                    showToast('Failed to publish batch', 'error');
                 }
             }
         });
@@ -253,11 +252,11 @@ export default function BatchWorkspace() {
                         </button>
                         {!isLocked && (
                             <button 
-                                onClick={handleSubmitToAdmin}
+                                onClick={handlePublishBatch}
                                 className="px-4 py-2 bg-pink-500 text-white rounded-lg text-sm font-semibold flex items-center hover:bg-pink-600 transition-colors shadow-sm"
                             >
                                 <Send size={16} className="mr-2" />
-                                Submit to Admin
+                                Publish Now
                             </button>
                         )}
                     </div>

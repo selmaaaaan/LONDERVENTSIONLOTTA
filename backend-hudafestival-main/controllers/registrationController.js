@@ -377,6 +377,93 @@ const getParticipantReport = async (req, res) => {
     }
 };
 
+
+const substituteCandidate = async (req, res) => {
+    const { id } = req.params;
+    const { oldCandidateId, newCandidateId } = req.body;
+
+    try {
+        const registration = await Registration.findById(id).populate('programme');
+        if (!registration) {
+            return res.status(404).json({ message: 'Registration not found' });
+        }
+
+        // Must belong to the same team
+        const oldCandidate = await Candidate.findById(oldCandidateId);
+        const newCandidate = await Candidate.findById(newCandidateId);
+
+        if (!oldCandidate || !newCandidate) {
+            return res.status(404).json({ message: 'One or both candidates not found' });
+        }
+
+        if (oldCandidate.team.toString() !== newCandidate.team.toString()) {
+            return res.status(400).json({ message: 'New candidate must belong to the same team' });
+        }
+
+        // Validate category mapping
+        const categoryMapping = {
+            'BIDĀYAH': 1,
+            'ʾŪLĀ': 2,
+            'THĀNIYAH': 3,
+            'THĀNAWIYYAH': 4,
+            'ʿĀLIYAH': 5,
+            'KULLIYYAH': 6
+        };
+
+        const progCategoryValue = categoryMapping[registration.programme.category];
+        const newCandCategoryValue = categoryMapping[newCandidate.category];
+
+        if (registration.programme.category !== 'KULLIYYAH' && newCandCategoryValue > progCategoryValue) {
+            return res.status(400).json({ message: 'New candidate category is not eligible for this programme' });
+        }
+
+        // Make the swap
+        const candidateIndex = registration.candidates.findIndex(c => c.toString() === oldCandidateId);
+        if (candidateIndex === -1) {
+            return res.status(400).json({ message: 'Old candidate is not in this registration' });
+        }
+
+        registration.candidates[candidateIndex] = newCandidateId;
+        await registration.save();
+
+        // Cascade substitution to Result and CodeLetter
+        const Result = require('../models/Result');
+        const CodeLetter = require('../models/CodeLetter');
+        
+        await Result.updateMany(
+            { programme: registration.programme._id, candidate: oldCandidateId },
+            { $set: { candidate: newCandidateId } }
+        );
+        
+        await CodeLetter.updateMany(
+            { programme: registration.programme._id, candidate: oldCandidateId },
+            { $set: { candidate: newCandidateId } }
+        );
+
+        // Log the substitution
+        const { logAction } = require('../utils/logAction');
+        await logAction({
+            actor: req.user._id,
+            actorRole: req.user.role,
+            action: 'CANDIDATE_SUBSTITUTED',
+            entityType: 'Registration',
+            entityId: registration._id,
+            details: {
+                programme: registration.programme.name,
+                oldCandidate: oldCandidate.name,
+                newCandidate: newCandidate.name,
+                team: oldCandidate.team
+            },
+            req
+        });
+
+        res.json(registration);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to substitute candidate', error: error.message });
+    }
+};
+
 module.exports = {
     removeCandidateFromRegistration,
     createRegistration,
@@ -387,5 +474,8 @@ module.exports = {
     updateRegistration,
     deleteRegistration,
     getProgrammeRegistrations,
+    substituteCandidate
 };
+
+
 

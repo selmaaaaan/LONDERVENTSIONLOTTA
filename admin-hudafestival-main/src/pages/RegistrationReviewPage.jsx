@@ -56,6 +56,40 @@ export default function RegistrationReviewPage() {
   const [assignError, setAssignError] = useState('');
   const [teamCandidates, setTeamCandidates] = useState([]);
 
+  // Substitute Modal state
+  const [substituteModal, setSubstituteModal] = useState({ open: false, registration: null });
+  const [substituteForm, setSubstituteForm] = useState({ oldCandidateId: '', newCandidateId: '' });
+  const [substituteSubmitting, setSubstituteSubmitting] = useState(false);
+  const [substituteCandidates, setSubstituteCandidates] = useState([]);
+
+  useEffect(() => {
+    if (substituteModal.open && substituteModal.registration) {
+      const reg = substituteModal.registration;
+      api.get(`/candidates?team=${reg.team?._id || reg.team}&category=${reg.programme?.category}`)
+         .then(r => setSubstituteCandidates(r.data))
+         .catch(console.error);
+    }
+  }, [substituteModal.open, substituteModal.registration]);
+
+  const handleSubstitute = async () => {
+    if (!substituteForm.oldCandidateId || !substituteForm.newCandidateId) {
+      alertAction('Please select both candidates', 'error');
+      return;
+    }
+    setSubstituteSubmitting(true);
+    try {
+      await api.patch(`/registrations/${substituteModal.registration._id}/substitute`, substituteForm);
+      alertAction('Candidate substituted successfully', 'success');
+      setSubstituteModal({ open: false, registration: null });
+      setSubstituteForm({ oldCandidateId: '', newCandidateId: '' });
+      loadData();
+    } catch (e) {
+      alertAction(e.response?.data?.message || 'Error substituting candidate', 'error');
+    } finally {
+      setSubstituteSubmitting(false);
+    }
+  };
+
   // Fetch Core Data
     const [selectedIds, setSelectedIds] = useState([]);
 
@@ -449,6 +483,9 @@ export default function RegistrationReviewPage() {
                                 <button onClick={() => openAssignModal('edit', reg)} className="p-1.5 text-[var(--color-text-muted)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 rounded-md transition" title="Edit">
                                   <Edit3 size={16} />
                                 </button>
+                                <button onClick={() => setSubstituteModal({ open: true, registration: reg })} className="p-1.5 text-[var(--color-text-muted)] hover:text-purple-500 hover:bg-purple-500/10 rounded-md transition" title="Substitute Candidate">
+                                  <Users size={16} />
+                                </button>
                                 <button onClick={() => setDeleteDialog({ open: true, id: reg._id })} className="p-1.5 text-[var(--color-text-muted)] hover:text-red-500 hover:bg-red-500/10 rounded-md transition" title="Delete">
                                   <Trash2 size={16} />
                                 </button>
@@ -598,6 +635,71 @@ export default function RegistrationReviewPage() {
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {/* Substitute Modal */}
+      <Modal 
+        isOpen={substituteModal.open} 
+        onClose={() => {
+          setSubstituteModal({ open: false, registration: null });
+          setSubstituteForm({ oldCandidateId: '', newCandidateId: '' });
+        }}
+        title="Substitute Candidate"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--color-text-muted)]">
+            Swap a currently registered candidate with a new one. This will be automatically approved.
+          </p>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">Original Candidate</label>
+            <select
+              value={substituteForm.oldCandidateId}
+              onChange={(e) => setSubstituteForm({ ...substituteForm, oldCandidateId: e.target.value })}
+              className="w-full px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-[var(--color-text-heading)] focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+            >
+              <option value="">Select Candidate to Replace</option>
+              {substituteModal.registration?.candidates?.map(c => (
+                <option key={c._id || c} value={c._id || c}>{c.name || 'Unknown Candidate'}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-[var(--color-text-muted)] uppercase tracking-wider mb-2">New Candidate</label>
+            <select
+              value={substituteForm.newCandidateId}
+              onChange={(e) => setSubstituteForm({ ...substituteForm, newCandidateId: e.target.value })}
+              className="w-full px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl text-[var(--color-text-heading)] focus:ring-2 focus:ring-[var(--color-primary)] outline-none"
+            >
+              <option value="">Select Replacement Candidate</option>
+              {substituteCandidates.map(c => (
+                <option key={c._id} value={c._id}>{c.name} ({c.admissionNo})</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-4">
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={() => {
+                setSubstituteModal({ open: false, registration: null });
+                setSubstituteForm({ oldCandidateId: '', newCandidateId: '' });
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubstitute} 
+              variant="primary" 
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+              disabled={substituteSubmitting}
+            >
+              {substituteSubmitting ? 'Substituting...' : 'Substitute Candidate'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
