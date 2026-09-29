@@ -318,7 +318,7 @@ const getCandidateRegistrations = async (req, res) => {
         const registrations = await Registration.find({ candidates: candidateId })
             .populate('programme', 'code name category stageType isResultPublished');
 
-        const programmeIds = registrations.map(r => r.programme._id);
+        const programmeIds = registrations.filter(r => r.programme).map(r => r.programme._id);
         const teamTopicRegistrations = await TopicRegistration.find({
             programme: { $in: programmeIds },
             team: candidate.team
@@ -350,7 +350,7 @@ const getCandidateRegistrations = async (req, res) => {
             return (a.programmeCode || '').localeCompare(b.programmeCode || '');
         });
 
-        res.status(200).json(mappedRegistrations);
+        res.status(200).json(filteredRegistrations);
     } catch (error) {
         res.status(500).json({ message: 'Error fetching candidate registrations', error: error.message });
     }
