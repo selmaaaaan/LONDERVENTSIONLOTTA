@@ -73,6 +73,7 @@ export default function CandidateProgrammeStatusPage() {
                         <span className="text-sm font-medium text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] px-3 py-1 rounded-full border border-[var(--color-border)]">AD: {candidate.admissionNo}</span>
                         <span className="text-sm font-medium text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] px-3 py-1 rounded-full border border-[var(--color-border)]">{candidate.category}</span>
                         <span className="text-sm font-medium text-[var(--color-primary)] bg-[var(--color-primary)]/10 px-3 py-1 rounded-full border border-[var(--color-primary)]/20">{candidate.team?.name || 'Unknown Team'}</span>
+<span className="text-sm font-medium text-green-400 bg-green-500/10 px-3 py-1 rounded-full border border-green-500/20">Total Points: {candidate.totalPoints || 0}</span>
                     </div>
                 </div>
             </div>

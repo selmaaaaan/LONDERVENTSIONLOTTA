@@ -325,7 +325,7 @@ const getCandidateRegistrations = async (req, res) => {
         });
 
         const mappedRegistrations = registrations.map(reg => {
-            const prog = reg.programme;
+            const prog = reg.programme; if(!prog) return null;
             const topicReg = teamTopicRegistrations.find(t => 
                 t.programme.toString() === prog._id.toString() && 
                 (!t.candidate || t.candidate.toString() === candidateId)
@@ -345,7 +345,7 @@ const getCandidateRegistrations = async (req, res) => {
             };
         });
 
-        mappedRegistrations.sort((a, b) => {
+        const filteredRegistrations = mappedRegistrations.filter(Boolean); filteredRegistrations.sort((a, b) => {
             if (a.category !== b.category) return (a.category || '').localeCompare(b.category || '');
             return (a.programmeCode || '').localeCompare(b.programmeCode || '');
         });

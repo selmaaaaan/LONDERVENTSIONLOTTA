@@ -45,7 +45,9 @@ import ReadyResultsPage from './pages/result-entry/ReadyResultsPage';
 import BatchDashboard from './pages/result-entry/BatchDashboard';
 import BatchWorkspace from './pages/result-entry/BatchWorkspace';
 import AllResultsPage from './pages/result-entry/AllResultsPage';
+import ResultReportsPage from './pages/result-entry/ResultReportsPage';
 import BatchPrintView from './pages/result-entry/BatchPrintView';
+import AllResultsPrintView from './pages/result-entry/AllResultsPrintView';
 
 
 
@@ -195,12 +197,14 @@ function App() {
       <ErrorBoundary key={location.pathname}>
         <Routes location={location}>
           <Route path="/result-entry/batches/:id/print" element={<BatchPrintView />} />
+          <Route path="/result-entry/all/print" element={<AllResultsPrintView />} />
             <Route element={<ResultEntryLayout />}>
             <Route path="/result-entry/dashboard" element={<ResultDashboard />} />
               <Route path="/result-entry/enter" element={<EnterResultPage />} />
             <Route path="/result-entry/ready" element={<ReadyResultsPage />} />
             <Route path="/result-entry/batches" element={<BatchDashboard />} />
             <Route path="/result-entry/all" element={<AllResultsPage />} />
+            <Route path="/result-entry/reports" element={<ResultReportsPage />} />
             <Route path="/result-entry/point-adjustments" element={<PointAdjustmentPage />} />
             <Route path="/result-entry/search" element={<ProgrammeParticipantSearchPage />} />
             <Route path="/result-entry/batches/:id" element={<BatchWorkspace />} />

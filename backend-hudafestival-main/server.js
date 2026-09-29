@@ -35,12 +35,14 @@ const allowedOrigins = [
     'https://hudafestival.online',
     'https://www.hudafestival.online',
     'https://admin.hudafestival.online',
-    'https://huda-festival-admin-xczf.onrender.com'
+    'https://huda-festival-admin-xczf.onrender.com',
+    'https://YOUR-NEW-FRONTEND-DOMAIN',
+    'https://YOUR-AI-STUDIO-PREVIEW-URL'
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.includes(origin)) {
+        if (!origin || allowedOrigins.includes(origin) || (origin && origin.includes('run.app')) || (origin && origin.includes('localhost'))) {
             callback(null, true);
         } else {
             callback(new Error('Not allowed by CORS'));

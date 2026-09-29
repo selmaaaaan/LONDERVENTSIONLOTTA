@@ -719,6 +719,25 @@ router.get('/batches/:id/projection', async (req, res) => {
     }
 });
 
+// @desc    Export all published results
+// @route   GET /api/result-entry/export/all-published
+router.get('/export/all-published', async (req, res) => {
+    try {
+        const results = await Result.find({ status: 'approved' })
+            .populate('programme', 'name code category format isStarred')
+            .populate({
+                path: 'candidate',
+                select: 'name admissionNo team classLevel',
+                populate: { path: 'team', select: 'name' }
+            });
+            
+        res.json(results);
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ message: 'Server error exporting results' });
+    }
+});
+
 // @desc    Publish Batch directly
 router.post('/batches/:id/publish', async (req, res) => {
     try {

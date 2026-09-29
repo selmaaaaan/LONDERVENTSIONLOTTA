@@ -70,7 +70,15 @@ export default function ResultDashboard() {
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Programmes Pipeline */}
                         <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-2">
                             <h3 className="font-bold text-sm text-[var(--color-text-muted)] uppercase tracking-wider">Programme Pipeline</h3>
+                            <button 
+                                onClick={() => navigate('/result-entry/reports')}
+                                className="px-3 py-1 bg-[var(--color-primary)]/10 text-[var(--color-primary)] hover:bg-[var(--color-primary)]/20 rounded-md text-xs font-bold transition-colors"
+                            >
+                                View Analytics & Reports
+                            </button>
+                        </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <button 
                                     onClick={() => navigate('/result-entry/enter')}
