@@ -1,7 +1,7 @@
 import GridLoader from '@/components/smoothui/grid-loader';
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, Trophy, Calendar, CheckCircle, Clock } from "lucide-react";
+import { ArrowLeft, User, Trophy, Calendar, CheckCircle, Clock, Printer } from "lucide-react";
 import api from "../services/api";
 import Button from "../components/Button";
 

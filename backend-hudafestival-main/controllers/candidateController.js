@@ -110,7 +110,7 @@ const updateCandidate = async (req, res) => {
             return res.status(404).json({ message: 'Candidate not found'})
         }
 
-        if (req.user.role === 'team_leader' && candidate.team.toString() !== req.user.team.toString()) {
+        if (req.user.role === 'team_leader' && candidate.team?.toString() !== req.user.team?.toString()) {
             return res.status(403).json({ message: 'You can only update your own team\'s candidates' });
         }
 
@@ -151,7 +151,7 @@ const deleteCandidate = async (req, res) => {
             return res.status(404).json({ message: 'Candidate not found'});
         }
 
-        if (req.user.role === 'team_leader' && candidate.team.toString() !== req.user.team.toString()) {
+        if (req.user.role === 'team_leader' && candidate.team?.toString() !== req.user.team?.toString()) {
             return res.status(403).json({ message: "You can only delete your own team's candidates" });
         }
 
@@ -311,7 +311,7 @@ const getCandidateRegistrations = async (req, res) => {
         
         if (!candidate) return res.status(404).json({ message: 'Candidate not found' });
 
-        if (req.user.role === 'team_leader' && candidate.team.toString() !== req.user.team.toString()) {
+        if (req.user.role === 'team_leader' && candidate.team?.toString() !== req.user.team?.toString()) {
             return res.status(403).json({ message: 'Not authorized to view this candidate' });
         }
 
@@ -352,7 +352,8 @@ const getCandidateRegistrations = async (req, res) => {
 
         res.status(200).json(filteredRegistrations);
     } catch (error) {
-        res.status(500).json({ message: 'Error fetching candidate registrations', error: error.message });
+        console.error('500 ERROR:', error);
+        res.status(500).json({ message: 'Error fetching candidate registrations', error: error.message, stack: error.stack });
     }
 };
 
