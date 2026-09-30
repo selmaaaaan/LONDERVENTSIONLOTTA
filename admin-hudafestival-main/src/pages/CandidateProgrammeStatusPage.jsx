@@ -58,6 +58,13 @@ export default function CandidateProgrammeStatusPage() {
 
     return (
         <div className="p-6 w-full max-w-5xl mx-auto space-y-6">
+            
+            {/* STUNNING PRINT HEADER (Only visible in Print) */}
+            <div className="hidden print:block text-center border-b-2 border-gray-800 pb-6 mb-8 mt-4">
+                <h1 className="text-4xl font-black uppercase tracking-widest text-black mb-2">L'Intervention '24</h1>
+                <h2 className="text-xl font-bold text-gray-600 uppercase tracking-wider">Candidate Performance Report</h2>
+            </div>
+            
             <button onClick={() => navigate(-1)} className="flex items-center text-sm text-[var(--color-text-muted)] hover:text-[var(--color-text-heading)] mb-2 transition-colors">
                 <ArrowLeft size={16} className="mr-1" /> Back to Search
             </button>
