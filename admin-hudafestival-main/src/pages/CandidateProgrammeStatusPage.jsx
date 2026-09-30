@@ -68,7 +68,12 @@ export default function CandidateProgrammeStatusPage() {
                     <User size={40} />
                 </div>
                 <div className="flex-1 text-center md:text-left">
-                    <h1 className="text-2xl font-bold text-[var(--color-text-heading)]">{candidate.name}</h1>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center w-full">
+                        <h1 className="text-2xl font-bold text-[var(--color-text-heading)]">{candidate.name}</h1>
+                        <button onClick={() => window.print()} className="print:hidden mt-3 md:mt-0 flex items-center gap-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer">
+                            <Printer size={16} /> Print Status
+                        </button>
+                    </div>
                     <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-2">
                         <span className="text-sm font-medium text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] px-3 py-1 rounded-full border border-[var(--color-border)]">AD: {candidate.admissionNo}</span>
                         <span className="text-sm font-medium text-[var(--color-text-muted)] bg-[var(--color-surface-elevated)] px-3 py-1 rounded-full border border-[var(--color-border)]">{candidate.category}</span>
