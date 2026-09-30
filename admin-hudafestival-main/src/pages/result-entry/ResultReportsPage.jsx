@@ -13,7 +13,15 @@ export default function ResultReportsPage() {
     const exportToExcel = async () => {
         try {
             const { data: candidates } = await api.get('/candidates');
-            const sorted = candidates.sort((a, b) => {
+            
+            // EXCLUDE TEAM DUMMY CANDIDATES
+            const EXCLUDED_NAMES = ['tahrir', 'bastille', 'syntagma', 'tiananmen', 'tahrir-team', 'bastille-team', 'syntagma-team', 'tiananmen-team'];
+            const validCandidates = candidates.filter(c => 
+                !EXCLUDED_NAMES.includes((c.name || '').toLowerCase().trim()) && 
+                (c.classLevel || '').toUpperCase() !== 'TEAM'
+            );
+
+            const sorted = validCandidates.sort((a, b) => {
                 const classA = a.classLevel || '';
                 const classB = b.classLevel || '';
                 if (classA !== classB) {
