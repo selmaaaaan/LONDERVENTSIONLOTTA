@@ -291,7 +291,7 @@ const lookupCandidates = async (req, res) => {
         }
 
         const candidates = await Candidate.find(query)
-            .select('name admissionNo classLevel category team')
+            .select('name admissionNo classLevel category team totalPoints')
             .populate('team', 'name')
             .limit(50);
 
