@@ -207,6 +207,7 @@ function App() {
             <Route path="/result-entry/reports" element={<ResultReportsPage />} />
             <Route path="/result-entry/point-adjustments" element={<PointAdjustmentPage />} />
             <Route path="/result-entry/search" element={<ProgrammeParticipantSearchPage />} />
+            <Route path="/result-entry/candidate-status/:id" element={<CandidateProgrammeStatusPage />} />
             <Route path="/result-entry/batches/:id" element={<BatchWorkspace />} />
             <Route path="*" element={<Navigate to="/result-entry/dashboard" replace />} />
           </Route>

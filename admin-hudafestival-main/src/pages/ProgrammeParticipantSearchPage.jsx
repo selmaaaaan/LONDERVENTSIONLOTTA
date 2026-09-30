@@ -176,7 +176,7 @@ export default function ProgrammeParticipantSearchPage() {
                             {candidateResults.map(c => (
                                 <div 
                                     key={c?._id || Math.random()} 
-                                    onClick={() => c?._id && navigate(`/candidate-status/${c._id}`)}
+                                    onClick={() => c?._id && navigate(window.location.pathname.includes('/result-entry') ? `/result-entry/candidate-status/${c._id}` : `/candidate-status/${c._id}`)}
                                     className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl p-5 hover:shadow-md hover:border-[var(--color-primary)] transition-all cursor-pointer group"
                                 >
                                     <div className="flex items-center gap-3 mb-3">
