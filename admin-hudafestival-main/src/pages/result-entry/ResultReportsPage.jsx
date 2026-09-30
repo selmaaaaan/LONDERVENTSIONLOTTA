@@ -1,13 +1,51 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import api from '../../services/api';
-import { Printer } from 'lucide-react';
+import { Printer, FileSpreadsheet } from 'lucide-react';
+import * as XLSX from 'xlsx';
 
 const COLORS = ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#3B82F6', '#14B8A6'];
 
 export default function ResultReportsPage() {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
+
+    const exportToExcel = async () => {
+        try {
+            const { data: candidates } = await api.get('/candidates');
+            const sorted = candidates.sort((a, b) => {
+                const classA = a.classLevel || '';
+                const classB = b.classLevel || '';
+                if (classA !== classB) {
+                    return classA.localeCompare(classB, undefined, { numeric: true });
+                }
+                return (b.totalPoints || 0) - (a.totalPoints || 0);
+            });
+
+            const excelData = sorted.map(c => ({
+                'Class Level': c.classLevel || 'Unspecified',
+                'Admission No': c.admissionNo,
+                'Name': c.name,
+                'Category': c.category,
+                'Team': c.team?.name || 'Unknown',
+                'Total Points': c.totalPoints || 0
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(excelData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Student Points");
+            
+            worksheet['!cols'] = [
+                {wch: 15}, {wch: 15}, {wch: 30}, {wch: 15}, {wch: 25}, {wch: 15}
+            ];
+
+            XLSX.writeFile(workbook, "All_Students_Points_Classwise.xlsx");
+        } catch (err) {
+            console.error("Export error:", err);
+            alert("Failed to export. Check console.");
+        }
+    };
+
 
     useEffect(() => {
         api.get('/result-entry/export/all-published')
@@ -75,13 +113,22 @@ export default function ResultReportsPage() {
                     <h1 className="text-3xl font-bold text-[var(--color-text-heading)]">Analytics & Reports</h1>
                     <p className="text-[var(--color-text-muted)] mt-1">Festival-wide statistics and breakdowns</p>
                 </div>
-                <button 
-                    onClick={() => window.print()}
-                    className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-heading)] rounded-lg transition-colors"
-                >
-                    <Printer size={18} />
-                    Print Report
-                </button>
+                <div className="flex items-center gap-3">
+                    <button 
+                        onClick={exportToExcel}
+                        className="flex items-center gap-2 px-4 py-2 bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] text-white rounded-lg transition-colors shadow-lg"
+                    >
+                        <FileSpreadsheet size={18} />
+                        Export Excel
+                    </button>
+                    <button 
+                        onClick={() => window.print()}
+                        className="flex items-center gap-2 px-4 py-2 bg-[var(--color-surface)] border border-[var(--color-border)] hover:bg-[var(--color-surface-elevated)] text-[var(--color-text-heading)] rounded-lg transition-colors"
+                    >
+                        <Printer size={18} />
+                        Print Report
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
